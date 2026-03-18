@@ -1,0 +1,96 @@
+@import "tailwindcss";
+
+@layer utilities {
+
+  /* Custom Scrollbar Utilities */
+  .scrollbar-thin::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    background-color: #27272a;
+    /* zinc-800 */
+    border-radius: 20px;
+  }
+
+  .scrollbar-thin {
+    scrollbar-width: thin;
+    scrollbar-color: #27272a transparent;
+  }
+
+  /* 3D Utilities */
+  .transform-style-3d {
+    transform-style: preserve-3d;
+  }
+}
+
+@theme {
+  --font-display: var(--font-syncopate);
+  --font-body: var(--font-space);
+
+  --color-accent: #00f0ff;
+  --color-bg: #000000;
+  --color-surface: rgba(255, 255, 255, 0.05);
+
+  /* Animation Keyframes */
+  --animate-scroll: scroll var(--animation-duration, 40s) var(--animation-direction, forwards) linear infinite;
+
+  @keyframes scroll {
+    to {
+      transform: translate(calc(-50% - 0.5rem));
+    }
+  }
+}
+
+:root {
+  --c-bg: #000000;
+  --c-text: #ffffff;
+  --c-accent: #00f0ff;
+}
+
+body {
+  background: var(--c-bg);
+  color: var(--c-text);
+  font-family: var(--font-space);
+  /* cursor: none; -- Disabled to restore system cursor */
+  /* Custom cursor preparation */
+}
+
+/* Restore cursor for dashboard - Nuclear Option */
+body:has(.dashboard-container),
+.dashboard-container,
+.dashboard-container * {
+  cursor: auto !important;
+}
+
+/* Hide custom cursor when in dashboard */
+body:has(.dashboard-container) .fixed.w-8.h-8 {
+  display: none !important;
+}
+
+/* Lenis Scroll */
+html.lenis,
+html.lenis body {
+  height: auto;
+}
+
+.lenis.lenis-smooth {
+  scroll-behavior: auto !important;
+}
+
+.lenis.lenis-smooth [data-lenis-prevent] {
+  overscroll-behavior: contain;
+}
+
+.lenis.lenis-stopped {
+  overflow: hidden;
+}
+
+.lenis.lenis-scrolling iframe {
+  pointer-events: none;
+}

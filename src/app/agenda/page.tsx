@@ -1,0 +1,265 @@
+'use client';
+
+import { useState, useEffect, useCallback } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { AnimatedGradient } from '@/components/premium/AnimatedGradient';
+import { format, addMonths, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay, isToday, addDays } from 'date-fns';
+import { es } from 'date-fns/locale';
+
+const SERVICES = [
+  { id: 'asesoria', name: 'Asesoría Online (1h)', price: 29900, icon: '💡' },
+  { id: 'tecnico', name: 'Diagnóstico Técnico', price: 15000, icon: '🔧' },
+  { id: 'empresas', name: 'Consultoría Empresas', price: 95000, icon: '🏢' },
+];
+
+export default function AgendaPage() {
+  const [step, setStep] = useState(1);
+  const [selectedService, setSelectedService] = useState(SERVICES[0]);
+  const [currentMonth, setCurrentMonth] = useState(new Date());
+  const [selectedDate, setSelectedDate] = useState<Date>(addDays(new Date(), 1));
+  const [availableSlots, setAvailableSlots] = useState<string[]>([]);
+  const [selectedSlot, setSelectedSlot] = useState<string | null>(null);
+  const [isLoadingSlots, setIsLoadingSlots] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [formData, setFormData] = useState({ name: '', email: '', whatsapp: '' });
+
+  const fetchAvailability = useCallback(async (date: Date) => {
+    setIsLoadingSlots(true);
+    try {
+      const dateStr = format(date, 'yyyy-MM-dd');
+      const res = await fetch(`/api/zeus/availability?date=${dateStr}`);
+      const data = await res.json();
+      setAvailableSlots(data.slots || []);
+    } catch (error) {
+      console.error('Error fetching availability:', error);
+    } finally {
+      setIsLoadingSlots(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (step === 2) {
+      fetchAvailability(selectedDate);
+    }
+  }, [step, selectedDate, fetchAvailability]);
+
+  const nextStep = () => setStep(s => s + 1);
+  const prevStep = () => setStep(s => s - 1);
+
+  const handleCheckout = async () => {
+    setIsSubmitting(true);
+    try {
+      // Simula el tiempo de aprobación de pasarela para pruebas
+      await new Promise(resolve => setTimeout(resolve, 1200));
+
+      const res = await fetch('/api/zeus/book', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          service_id: selectedService.id,
+          service_name: selectedService.name,
+          amount: selectedService.price,
+          client_name: formData.name,
+          client_email: formData.email,
+          client_whatsapp: formData.whatsapp,
+          date: format(selectedDate, 'yyyy-MM-dd'),
+          slot: selectedSlot,
+          simulate_payment: true
+        })
+      });
+
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || 'Error al crear la reserva');
+      }
+
+      // Redirección a éxito en modo simulación
+      window.location.href = "/prospectos/zeus/checkout/success?mode=simulated";
+    } catch (error: any) {
+      alert(error.message);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // Generar días del calendario
+  const daysInMonth = eachDayOfInterval({
+    start: startOfMonth(currentMonth),
+    end: endOfMonth(currentMonth)
+  });
+
+  return (
+    <div className="relative pt-32 pb-24 min-h-screen overflow-hidden text-white font-sans">
+      <AnimatedGradient
+        colors={['#00FF8705', '#00D4FF03', '#0A0A0F00']}
+        speed={15}
+        blur={120}
+        opacity={1}
+      />
+
+      <div className="max-w-4xl mx-auto px-6 relative z-10">
+        <div className="text-center mb-12">
+            <h1 className="text-4xl md:text-6xl font-black mb-4" style={{ letterSpacing: '-.03em' }}>
+              Reservar <span style={{ color: '#00FF87' }}>Espacio.</span>
+            </h1>
+            <div className="flex justify-center gap-2 mb-8">
+              {[1, 2, 3].map(i => (
+                <div key={i} className="w-12 h-1 rounded-full transition-all duration-500" 
+                     style={{ background: step >= i ? '#00FF87' : 'rgba(255,255,255,0.1)' }} />
+              ))}
+            </div>
+        </div>
+
+        <div className="bg-[#111118] border border-white/5 rounded-3xl p-8 md:p-12 min-h-[500px] flex flex-col relative overflow-hidden">
+          {isSubmitting && (
+             <div className="absolute inset-0 bg-[#0A0A0F]/80 backdrop-blur-md z-50 flex flex-col items-center justify-center">
+                <div className="w-12 h-12 border-4 border-[#00FF87] border-t-transparent rounded-full animate-spin mb-4" />
+                <p className="text-sm font-bold tracking-widest uppercase animate-pulse">Simulando Pago Exitoso...</p>
+             </div>
+          )}
+
+          <AnimatePresence mode="wait">
+            {step === 1 && (
+              <motion.div key="step1" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="flex-1">
+                <h3 className="text-xl font-bold mb-8">1. Selecciona el servicio</h3>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {SERVICES.map(s => (
+                    <button key={s.id} onClick={() => setSelectedService(s)}
+                      className="p-6 rounded-2xl border text-left transition-all group"
+                      style={{ 
+                        background: selectedService.id === s.id ? 'rgba(0,255,135,0.1)' : 'transparent',
+                        borderColor: selectedService.id === s.id ? '#00FF87' : 'rgba(255,255,255,0.1)' 
+                      }}>
+                      <div className="text-3xl mb-4 group-hover:scale-110 transition-transform">{s.icon}</div>
+                      <div className="font-bold text-sm mb-1">{s.name}</div>
+                      <div className="text-xs font-black" style={{ color: '#00FF87' }}>${s.price.toLocaleString('es-CL')}</div>
+                    </button>
+                  ))}
+                </div>
+                <div className="mt-auto pt-10 flex justify-end">
+                   <button onClick={nextStep} className="px-8 py-3 rounded-xl font-bold transition-all hover:scale-105 active:scale-95" 
+                           style={{ background: '#00FF87', color: '#0A0A0F' }}>Continuar →</button>
+                </div>
+              </motion.div>
+            )}
+
+            {step === 2 && (
+              <motion.div key="step2" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="flex-1">
+                <h3 className="text-xl font-bold mb-8">2. Elige fecha y hora</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
+                  <div>
+                    <div className="flex justify-between items-center mb-6">
+                      <button onClick={()=>setCurrentMonth(m => addMonths(m, -1))} className="text-sm opacity-50 hover:opacity-100">←</button>
+                      <h4 className="text-sm font-bold capitalize">{format(currentMonth, 'MMMM yyyy', { locale: es })}</h4>
+                      <button onClick={()=>setCurrentMonth(m => addMonths(m, 1))} className="text-sm opacity-50 hover:opacity-100">→</button>
+                    </div>
+                    <div className="grid grid-cols-7 gap-1 text-[10px] text-center mb-2 uppercase tracking-widest text-white/30 font-bold">
+                       {['D','L','M','M','J','V','S'].map((d, idx)=><div key={idx}>{d}</div>)}
+                    </div>
+                    <div className="grid grid-cols-7 gap-1">
+                      {daysInMonth.map(day => (
+                        <button key={day.toString()} disabled={day < new Date() && !isToday(day)}
+                                onClick={() => setSelectedDate(day)}
+                                className={`h-10 rounded-lg text-xs font-semibold flex items-center justify-center transition-all disabled:opacity-5 
+                                          ${isSameDay(selectedDate, day) ? 'ring-2 ring-[#00FF87]' : ''}`}
+                                style={{ 
+                                  background: isSameDay(selectedDate, day) ? '#00FF87' : 'rgba(255,255,255,0.03)',
+                                  color: isSameDay(selectedDate, day) ? '#0A0A0F' : isToday(day) ? '#00FF87' : 'white'
+                                }}>
+                          {format(day, 'd')}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="space-y-3">
+                    <p className="text-xs font-bold uppercase tracking-widest text-white/30 mb-4 flex items-center gap-2">
+                       Horas Disponibles {isLoadingSlots && <span className="w-2 h-2 rounded-full bg-[#00FF87] animate-ping" />}
+                    </p>
+                    {availableSlots.length > 0 ? (
+                      <div className="grid grid-cols-2 gap-2">
+                         {availableSlots.map(t => (
+                           <button key={t} 
+                                   onClick={() => setSelectedSlot(t)}
+                                   className={`py-3 rounded-xl border text-xs font-bold transition-all ${selectedSlot === t ? 'scale-105 shadow-lg' : 'hover:bg-white/5'}`}
+                                   style={{ 
+                                     background: selectedSlot === t ? '#00FF87' : 'transparent',
+                                     color: selectedSlot === t ? '#0A0A0F' : 'white',
+                                     borderColor: selectedSlot === t ? '#00FF87' : 'rgba(255,255,255,0.1)'
+                                   }}>
+                             {t}
+                           </button>
+                         ))}
+                      </div>
+                    ) : (
+                      <div className="py-12 text-center border border-dashed border-white/10 rounded-2xl">
+                         <p className="text-xs text-white/20 italic">No hay horarios disponibles para este día</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+                <div className="mt-auto pt-10 flex justify-between">
+                   <button onClick={prevStep} className="text-sm font-bold opacity-50 hover:opacity-100 transition-opacity">← Atrás</button>
+                   <button disabled={!selectedSlot || isLoadingSlots} onClick={nextStep} 
+                           className="px-8 py-3 rounded-xl font-bold transition-all disabled:opacity-20" 
+                           style={{ background: '#00FF87', color: '#0A0A0F' }}>Casi listo →</button>
+                </div>
+              </motion.div>
+            )}
+
+            {step === 3 && (
+              <motion.div key="step3" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="flex-1">
+                <h3 className="text-xl font-bold mb-8">3. Datos de contacto</h3>
+                <div className="grid gap-6 max-w-sm">
+                   <div className="space-y-2">
+                      <label className="text-[10px] uppercase tracking-widest text-white/30 font-black">Nombre Completo</label>
+                      <input type="text" placeholder="Tu nombre" 
+                             className="w-full h-14 bg-white/5 border border-white/10 rounded-xl px-4 text-sm focus:border-[#00FF87] outline-none transition-all"
+                             value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} />
+                   </div>
+                   <div className="space-y-2">
+                      <label className="text-[10px] uppercase tracking-widest text-white/30 font-black">Email</label>
+                      <input type="email" placeholder="correo@ejemplo.cl" 
+                             className="w-full h-14 bg-white/5 border border-white/10 rounded-xl px-4 text-sm focus:border-[#00FF87] outline-none transition-all"
+                             value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} />
+                   </div>
+                   <div className="space-y-2">
+                      <label className="text-[10px] uppercase tracking-widest text-white/30 font-black">WhatsApp</label>
+                      <input type="tel" placeholder="+56 9..." 
+                             className="w-full h-14 bg-white/5 border border-white/10 rounded-xl px-4 text-sm focus:border-[#00FF87] outline-none transition-all"
+                             value={formData.whatsapp} onChange={e => setFormData({...formData, whatsapp: e.target.value})} />
+                   </div>
+                </div>
+
+                <div className="mt-12 p-6 rounded-2xl bg-[#00FF87]/5 border border-[#00FF87]/10 relative overflow-hidden group">
+                   <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity -rotate-12 translate-x-4">
+                      <span className="text-6xl text-[#00FF87]">{selectedService.icon}</span>
+                   </div>
+                   <div className="flex justify-between items-center mb-4 relative z-10">
+                      <span className="text-sm font-bold uppercase tracking-tight">{selectedService.name}</span>
+                      <span className="text-xl font-black" style={{ color: '#00FF87' }}>${selectedService.price.toLocaleString('es-CL')}</span>
+                   </div>
+                   <div className="text-xs text-white/40 font-medium relative z-10">
+                      {format(selectedDate, "EEEE, d 'de' MMMM", { locale: es })} a las {selectedSlot}
+                   </div>
+                </div>
+
+                <div className="mt-8 pt-8 border-t border-white/5 flex justify-between items-center">
+                   <button onClick={prevStep} className="text-sm font-bold opacity-50 hover:opacity-100 transition-opacity">← Atrás</button>
+                   <button onClick={handleCheckout} disabled={!formData.name || !formData.email || isSubmitting}
+                           className="px-10 py-4 rounded-xl font-bold transition-all shadow-lg active:scale-95 disabled:grayscale" 
+                           style={{ background: 'linear-gradient(135deg, #00FF87, #00D4FF)', color: '#0A0A0F', boxShadow: '0 0 30px rgba(0,255,135,0.3)' }}>
+                     Pagar (Simulado) →
+                   </button>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+        <p className="mt-8 text-center text-[10px] font-bold tracking-widest uppercase opacity-20">
+          Powered by HojaCero Agenda Engine
+        </p>
+      </div>
+    </div>
+  );
+}
