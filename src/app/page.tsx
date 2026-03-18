@@ -19,7 +19,7 @@ const SERVICES = [
     cta: 'Agendar sesión',
     size: 'large',
     accent: '#00FF87',
-    href: '/prospectos/zeus/agenda',
+    href: '/agenda',
     price: 'Desde $29.900',
     image: null
   },
@@ -32,7 +32,7 @@ const SERVICES = [
     cta: 'Ver disponibilidad',
     size: 'medium',
     accent: '#00D4FF',
-    href: '/prospectos/zeus/tecnicos',
+    href: '/tecnicos',
     price: 'Soporte Especializado',
     image: null
   },
@@ -45,7 +45,7 @@ const SERVICES = [
     cta: 'Explorar catálogo',
     size: 'medium',
     accent: '#00FF87',
-    href: '/prospectos/zeus/tienda',
+    href: '/tienda',
     price: 'Kit Digital',
     image: '/prospectos/zeus/products.png'
   },
@@ -58,7 +58,7 @@ const SERVICES = [
     cta: 'Acceder gratis',
     size: 'large',
     accent: '#A78BFA',
-    href: '/prospectos/zeus/biblioteca',
+    href: '/biblioteca',
     price: 'Acceso Libre',
     image: null
   },
@@ -242,7 +242,7 @@ function ZeusNav() {
         {/* CTA */}
         <div className="flex items-center gap-3">
           <a
-            href="/prospectos/zeus/agenda"
+            href="/agenda"
             className="hidden md:inline-flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-semibold transition-all duration-300"
             style={{
               background: 'linear-gradient(135deg, #00FF87, #00D4FF)',
@@ -285,7 +285,7 @@ function ZeusNav() {
             </a>
           ))}
           <a
-            href="/prospectos/zeus/agenda"
+            href="/agenda"
             className="mt-4 block text-center px-5 py-3 rounded-lg text-sm font-semibold"
             style={{ background: 'linear-gradient(135deg, #00FF87, #00D4FF)', color: '#0A0A0F' }}
           >
@@ -421,7 +421,7 @@ function HeroSection() {
           className="flex flex-col sm:flex-row gap-4"
         >
           <a
-            href="/prospectos/zeus/agenda"
+            href="/agenda"
             id="zeus-cta-agenda"
             className="inline-flex items-center justify-center gap-2 px-8 py-4 rounded-xl text-base font-bold transition-all duration-300"
             style={{
@@ -980,7 +980,7 @@ function AgendaSection() {
           {/* CTAs */}
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <a
-              href="/prospectos/zeus/agenda"
+              href="/agenda"
               id="zeus-cta-agendar-real"
               className="inline-flex items-center justify-center gap-2 px-10 py-4 rounded-xl text-base font-bold transition-all duration-300"
               style={{

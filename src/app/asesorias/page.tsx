@@ -42,7 +42,7 @@ export default function AsesoriasPage() {
             </div>
 
             <div className="flex items-center gap-8">
-               <Link href="/prospectos/zeus/agenda" 
+               <Link href="/agenda" 
                      className="px-10 py-5 rounded-xl font-bold transition-all shadow-lg hover:scale-105 active:scale-95"
                      style={{ background: 'linear-gradient(135deg, #00FF87, #00D4FF)', color: '#0A0A0F', boxShadow: '0 0 30px rgba(0,255,135,0.3)' }}>
                   Agendar Sesión →

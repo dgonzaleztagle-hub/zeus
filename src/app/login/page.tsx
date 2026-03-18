@@ -50,7 +50,7 @@ export default function ZeusLoginPage() {
       }
 
       // Login exitoso, redirigir al admin
-      router.push('/prospectos/zeus/admin');
+      router.push('/admin');
     } catch (err) {
       setError('Error al iniciar sesión');
       setLoading(false);
@@ -167,7 +167,7 @@ export default function ZeusLoginPage() {
           {/* Footer */}
           <div className="mt-6 pt-6 border-t border-white/10">
             <a
-              href="/prospectos/zeus"
+              href="/"
               className="block text-center text-white/60 hover:text-white/80 text-sm transition-colors"
             >
               ← Volver al inicio

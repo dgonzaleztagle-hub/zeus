@@ -10,7 +10,7 @@ export default function ZeusPageFrame({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
-  const isAdminRoute = pathname === '/prospectos/zeus/admin' || pathname?.startsWith('/prospectos/zeus/admin/');
+  const isAdminRoute = pathname === '/admin' || pathname?.startsWith('/admin/');
 
   return (
     <>

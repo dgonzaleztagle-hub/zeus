@@ -16,11 +16,11 @@ export function Nav() {
   }, []);
 
   const navLinks = [
-    { name: 'Asesorías', href: '/prospectos/zeus/asesorias' },
-    { name: 'Técnico', href: '/prospectos/zeus/tecnicos' },
-    { name: 'Tienda', href: '/prospectos/zeus/tienda' },
-    { name: 'Biblioteca', href: '/prospectos/zeus/biblioteca' },
-    { name: 'Sobre Nosotros', href: '/prospectos/zeus/nosotros' },
+    { name: 'Asesorías', href: '/asesorias' },
+    { name: 'Técnico', href: '/tecnicos' },
+    { name: 'Tienda', href: '/tienda' },
+    { name: 'Biblioteca', href: '/biblioteca' },
+    { name: 'Sobre Nosotros', href: '/nosotros' },
   ];
 
   return (
@@ -34,7 +34,7 @@ export function Nav() {
     >
       <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
         {/* Logo */}
-        <Link href="/prospectos/zeus" className="flex items-center gap-3">
+        <Link href="/" className="flex items-center gap-3">
           <div
             className="w-9 h-9 rounded-lg flex items-center justify-center font-black text-sm"
             style={{ background: 'linear-gradient(135deg, #00FF87, #00D4FF)' }}
@@ -65,7 +65,7 @@ export function Nav() {
         {/* CTA */}
         <div className="flex items-center gap-3">
           <Link
-            href="/prospectos/zeus/agenda"
+            href="/agenda"
             className="hidden md:inline-flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-semibold transition-all duration-300"
             style={{
               background: 'linear-gradient(135deg, #00FF87, #00D4FF)',
@@ -109,7 +109,7 @@ export function Nav() {
             </Link>
           ))}
           <Link
-            href="/prospectos/zeus/agenda"
+            href="/agenda"
             className="mt-4 block text-center px-5 py-3 rounded-lg text-sm font-semibold"
             style={{ background: 'linear-gradient(135deg, #00FF87, #00D4FF)', color: '#0A0A0F' }}
             onClick={() => setMenuOpen(false)}

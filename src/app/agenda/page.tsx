@@ -74,7 +74,7 @@ export default function AgendaPage() {
       }
 
       // Redirección a éxito en modo simulación
-      window.location.href = "/prospectos/zeus/checkout/success?mode=simulated";
+      window.location.href = "/checkout/success?mode=simulated";
     } catch (error: any) {
       alert(error.message);
     } finally {

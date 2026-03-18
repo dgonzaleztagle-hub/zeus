@@ -69,12 +69,12 @@ export default function TecnicosPage() {
             </div>
 
             <div className="flex items-center gap-6">
-               <Link href="/prospectos/zeus/agenda" 
+               <Link href="/agenda" 
                      className="px-8 py-4 rounded-xl font-bold transition-all border hover:border-[#00D4FF] hover:text-[#00D4FF]"
                      style={{ background: 'transparent', borderColor: 'rgba(255,255,255,0.1)', color: '#FFF' }}>
                   Agendar Diagnóstico →
                </Link>
-               <Link href="/prospectos/zeus/contacto" className="text-sm font-bold opacity-40 hover:opacity-100 transition-opacity">Consultar WhatsApp</Link>
+               <Link href="/contacto" className="text-sm font-bold opacity-40 hover:opacity-100 transition-opacity">Consultar WhatsApp</Link>
             </div>
           </motion.div>
 

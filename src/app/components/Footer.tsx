@@ -12,7 +12,7 @@ export function Footer() {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-12 mb-12">
           {/* Logo & Info */}
           <div className="col-span-1 md:col-span-2">
-            <Link href="/prospectos/zeus" className="flex items-center gap-3 mb-6">
+            <Link href="/" className="flex items-center gap-3 mb-6">
               <div
                 className="w-8 h-8 rounded-lg flex items-center justify-center font-black text-xs"
                 style={{ background: 'linear-gradient(135deg, #00FF87, #00D4FF)' }}
@@ -33,9 +33,9 @@ export function Footer() {
           <div>
             <h4 className="text-white text-xs font-bold tracking-widest uppercase mb-6">Servicios</h4>
             <div className="flex flex-col gap-4 text-sm" style={{ color: 'rgba(240,240,240,0.4)' }}>
-              <Link href="/prospectos/zeus/asesorias" className="hover:text-[#00FF87] transition-colors">Asesorías Online</Link>
-              <Link href="/prospectos/zeus/tecnicos" className="hover:text-[#00FF87] transition-colors">Servicio Técnico</Link>
-              <Link href="/prospectos/zeus/agenda" className="hover:text-[#00FF87] transition-colors">Agendar Sesión</Link>
+              <Link href="/asesorias" className="hover:text-[#00FF87] transition-colors">Asesorías Online</Link>
+              <Link href="/tecnicos" className="hover:text-[#00FF87] transition-colors">Servicio Técnico</Link>
+              <Link href="/agenda" className="hover:text-[#00FF87] transition-colors">Agendar Sesión</Link>
             </div>
           </div>
 
@@ -43,9 +43,9 @@ export function Footer() {
           <div>
             <h4 className="text-white text-xs font-bold tracking-widest uppercase mb-6">Plataforma</h4>
             <div className="flex flex-col gap-4 text-sm" style={{ color: 'rgba(240,240,240,0.4)' }}>
-              <Link href="/prospectos/zeus/tienda" className="hover:text-[#00FF87] transition-colors">Tienda Digital</Link>
-              <Link href="/prospectos/zeus/biblioteca" className="hover:text-[#00FF87] transition-colors">Biblioteca</Link>
-              <Link href="/prospectos/zeus/contacto" className="hover:text-[#00FF87] transition-colors">Contacto</Link>
+              <Link href="/tienda" className="hover:text-[#00FF87] transition-colors">Tienda Digital</Link>
+              <Link href="/biblioteca" className="hover:text-[#00FF87] transition-colors">Biblioteca</Link>
+              <Link href="/contacto" className="hover:text-[#00FF87] transition-colors">Contacto</Link>
             </div>
           </div>
         </div>

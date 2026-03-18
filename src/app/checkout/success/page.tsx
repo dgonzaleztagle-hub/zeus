@@ -57,7 +57,7 @@ function SuccessContent() {
         </p>
 
         <div className="grid gap-4">
-          <Link href="/prospectos/zeus" 
+          <Link href="/" 
                 className="w-full py-4 rounded-xl font-bold transition-all"
                 style={{ background: 'linear-gradient(135deg, #00FF87, #00D4FF)', color: '#0A0A0F' }}>
              Volver al Inicio
