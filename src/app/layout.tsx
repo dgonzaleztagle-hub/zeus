@@ -1,3 +1,4 @@
+import './globals.css';
 import { GrainTexture } from '@/components/premium/GrainTexture';
 import ZeusPageFrame from './components/ZeusPageFrame';
 
