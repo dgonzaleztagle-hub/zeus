@@ -1,4 +1,4 @@
-import Link from 'next/link';
+﻿import Link from 'next/link';
 
 export function Footer() {
   const currentYear = new Date().getFullYear();
@@ -15,12 +15,12 @@ export function Footer() {
             <Link href="/" className="flex items-center gap-3 mb-6">
               <div
                 className="w-8 h-8 rounded-lg flex items-center justify-center font-black text-xs"
-                style={{ background: 'linear-gradient(135deg, #00FF87, #00D4FF)' }}
+                style={{ background: 'linear-gradient(135deg, #0EA5E9, #00D4FF)' }}
               >
                 <span className="text-[#0A0A0F]">Z</span>
               </div>
               <span className="font-bold text-white tracking-tight">
-                Asesorías Zeus<span style={{ color: '#00FF87' }}>.</span>
+                Asesorías Zeus<span style={{ color: '#0EA5E9' }}>.</span>
               </span>
             </Link>
             <p className="text-sm leading-relaxed max-w-xs" style={{ color: 'rgba(240,240,240,0.4)' }}>
@@ -33,9 +33,9 @@ export function Footer() {
           <div>
             <h4 className="text-white text-xs font-bold tracking-widest uppercase mb-6">Servicios</h4>
             <div className="flex flex-col gap-4 text-sm" style={{ color: 'rgba(240,240,240,0.4)' }}>
-              <Link href="/asesorias" className="hover:text-[#00FF87] transition-colors">Asesorías Online</Link>
-              <Link href="/tecnicos" className="hover:text-[#00FF87] transition-colors">Servicio Técnico</Link>
-              <Link href="/agenda" className="hover:text-[#00FF87] transition-colors">Agendar Sesión</Link>
+              <Link href="/asesorias" className="hover:text-[#0EA5E9] transition-colors">Asesorías Online</Link>
+              <Link href="/tecnicos" className="hover:text-[#0EA5E9] transition-colors">Servicio Técnico</Link>
+              <Link href="/agenda" className="hover:text-[#0EA5E9] transition-colors">Agendar Sesión</Link>
             </div>
           </div>
 
@@ -43,9 +43,9 @@ export function Footer() {
           <div>
             <h4 className="text-white text-xs font-bold tracking-widest uppercase mb-6">Plataforma</h4>
             <div className="flex flex-col gap-4 text-sm" style={{ color: 'rgba(240,240,240,0.4)' }}>
-              <Link href="/tienda" className="hover:text-[#00FF87] transition-colors">Tienda Digital</Link>
-              <Link href="/biblioteca" className="hover:text-[#00FF87] transition-colors">Biblioteca</Link>
-              <Link href="/contacto" className="hover:text-[#00FF87] transition-colors">Contacto</Link>
+              <Link href="/tienda" className="hover:text-[#0EA5E9] transition-colors">Tienda Digital</Link>
+              <Link href="/biblioteca" className="hover:text-[#0EA5E9] transition-colors">Biblioteca</Link>
+              <Link href="/contacto" className="hover:text-[#0EA5E9] transition-colors">Contacto</Link>
             </div>
           </div>
         </div>
@@ -56,7 +56,7 @@ export function Footer() {
           </p>
           <div className="flex items-center gap-2">
              <span className="text-[10px] tracking-widest uppercase" style={{ color: 'rgba(240,240,240,0.2)' }}>Powered by</span>
-             <span className="font-black text-[10px] tracking-tight" style={{ color: 'rgba(240,240,240,0.4)' }}>HojaCero<span style={{ color: '#00FF87' }}>.</span></span>
+             <span className="font-black text-[10px] tracking-tight" style={{ color: 'rgba(240,240,240,0.4)' }}>HojaCero<span style={{ color: '#0EA5E9' }}>.</span></span>
           </div>
         </div>
       </div>

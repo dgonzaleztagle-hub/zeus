@@ -18,7 +18,7 @@ const SERVICES = [
     icon: '⚡',
     cta: 'Agendar sesión',
     size: 'large',
-    accent: '#00FF87',
+    accent: '#0EA5E9',
     href: '/agenda',
     price: 'Desde $29.900',
     image: null
@@ -44,7 +44,7 @@ const SERVICES = [
     icon: '📦',
     cta: 'Explorar catálogo',
     size: 'medium',
-    accent: '#00FF87',
+    accent: '#0EA5E9',
     href: '/tienda',
     price: 'Kit Digital',
     image: '/prospectos/zeus/products.png'
@@ -73,7 +73,7 @@ const PRODUCTS = [
     tag: 'MÁS VENDIDO',
     pages: '48 págs',
     format: 'PDF + Plantilla Excel',
-    tagColor: '#00FF87',
+    tagColor: '#0EA5E9',
   },
   {
     id: 2,
@@ -206,7 +206,7 @@ function ZeusNav() {
       style={{
         background: scrolled ? 'rgba(10,10,15,0.95)' : 'transparent',
         backdropFilter: scrolled ? 'blur(20px)' : 'none',
-        borderBottom: scrolled ? '1px solid rgba(0,255,135,0.1)' : 'none',
+        borderBottom: scrolled ? '1px solid rgba(14,165,233,0.1)' : 'none',
       }}
     >
       <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
@@ -214,12 +214,12 @@ function ZeusNav() {
         <div className="flex items-center gap-3">
           <div
             className="w-9 h-9 rounded-lg flex items-center justify-center font-black text-sm"
-            style={{ background: 'linear-gradient(135deg, #00FF87, #00D4FF)' }}
+            style={{ background: 'linear-gradient(135deg, #0EA5E9, #00D4FF)' }}
           >
             <span className="text-[#0A0A0F]">Z</span>
           </div>
           <span className="font-bold text-white text-lg tracking-tight">
-            Zeus<span style={{ color: '#00FF87' }}>.</span>
+            Zeus<span style={{ color: '#0EA5E9' }}>.</span>
           </span>
         </div>
 
@@ -231,7 +231,7 @@ function ZeusNav() {
               href="#"
               className="text-sm font-medium transition-colors duration-200"
               style={{ color: 'rgba(240,240,240,0.6)' }}
-              onMouseEnter={(e) => ((e.target as HTMLElement).style.color = '#00FF87')}
+              onMouseEnter={(e) => ((e.target as HTMLElement).style.color = '#0EA5E9')}
               onMouseLeave={(e) => ((e.target as HTMLElement).style.color = 'rgba(240,240,240,0.6)')}
             >
               {item}
@@ -245,12 +245,12 @@ function ZeusNav() {
             href="/agenda"
             className="hidden md:inline-flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-semibold transition-all duration-300"
             style={{
-              background: 'linear-gradient(135deg, #00FF87, #00D4FF)',
+              background: 'linear-gradient(135deg, #0EA5E9, #00D4FF)',
               color: '#0A0A0F',
             }}
             onMouseEnter={(e) => {
               (e.currentTarget as HTMLElement).style.transform = 'scale(1.03)';
-              (e.currentTarget as HTMLElement).style.boxShadow = '0 0 30px rgba(0,255,135,0.4)';
+              (e.currentTarget as HTMLElement).style.boxShadow = '0 0 30px rgba(14,165,233,0.4)';
             }}
             onMouseLeave={(e) => {
               (e.currentTarget as HTMLElement).style.transform = 'scale(1)';
@@ -279,7 +279,7 @@ function ZeusNav() {
               key={item}
               href="#"
               className="block py-3 text-sm font-medium border-b"
-              style={{ color: 'rgba(240,240,240,0.7)', borderColor: 'rgba(0,255,135,0.1)' }}
+              style={{ color: 'rgba(240,240,240,0.7)', borderColor: 'rgba(14,165,233,0.1)' }}
             >
               {item}
             </a>
@@ -287,7 +287,7 @@ function ZeusNav() {
           <a
             href="/agenda"
             className="mt-4 block text-center px-5 py-3 rounded-lg text-sm font-semibold"
-            style={{ background: 'linear-gradient(135deg, #00FF87, #00D4FF)', color: '#0A0A0F' }}
+            style={{ background: 'linear-gradient(135deg, #0EA5E9, #00D4FF)', color: '#0A0A0F' }}
           >
             Agendar sesión
           </a>
@@ -305,14 +305,15 @@ function HeroSection() {
       className="relative min-h-screen flex flex-col justify-center overflow-hidden"
       style={{ background: '#0A0A0F' }}
     >
-      {/* Background image */}
+      {/* Background image — filtro hue-rotate para convertir verde → azul */}
       <div
         className="absolute inset-0 z-0"
         style={{
           backgroundImage: 'url(/prospectos/zeus/hero.png)',
           backgroundSize: 'cover',
           backgroundPosition: 'center',
-          opacity: 0.25,
+          opacity: 0.30,
+          filter: 'hue-rotate(150deg) saturate(1.4)',
         }}
       />
 
@@ -321,13 +322,13 @@ function HeroSection() {
         className="absolute inset-0 z-[1]"
         style={{
           background:
-            'radial-gradient(ellipse 80% 60% at 50% 0%, rgba(0,255,135,0.12) 0%, transparent 70%), radial-gradient(ellipse 60% 50% at 80% 50%, rgba(0,212,255,0.08) 0%, transparent 60%), linear-gradient(to bottom, transparent 60%, #0A0A0F 100%)',
+            'radial-gradient(ellipse 80% 60% at 50% 0%, rgba(14,165,233,0.12) 0%, transparent 70%), radial-gradient(ellipse 60% 50% at 80% 50%, rgba(0,212,255,0.08) 0%, transparent 60%), linear-gradient(to bottom, transparent 60%, #0A0A0F 100%)',
         }}
       />
 
       {/* Animated orbs */}
       <AnimatedGradient
-        colors={['#00FF8710', '#00D4FF08', '#0A0A0F00']}
+        colors={['#0EA5E910', '#00D4FF08', '#0A0A0F00']}
         speed={20}
         blur={120}
         opacity={1}
@@ -339,7 +340,7 @@ function HeroSection() {
         className="absolute inset-0 z-[1]"
         style={{
           backgroundImage:
-            'linear-gradient(rgba(0,255,135,0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(0,255,135,0.04) 1px, transparent 1px)',
+            'linear-gradient(rgba(14,165,233,0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(14,165,233,0.04) 1px, transparent 1px)',
           backgroundSize: '60px 60px',
         }}
       />
@@ -353,14 +354,14 @@ function HeroSection() {
           transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
           className="inline-flex items-center gap-2 px-4 py-2 rounded-full mb-8 text-xs font-semibold tracking-widest uppercase"
           style={{
-            background: 'rgba(0,255,135,0.08)',
-            border: '1px solid rgba(0,255,135,0.25)',
-            color: '#00FF87',
+            background: 'rgba(14,165,233,0.08)',
+            border: '1px solid rgba(14,165,233,0.25)',
+            color: '#0EA5E9',
           }}
         >
           <span
             className="w-1.5 h-1.5 rounded-full animate-pulse"
-            style={{ background: '#00FF87' }}
+            style={{ background: '#0EA5E9' }}
           />
           Plataforma de Conocimiento Aplicado
         </motion.div>
@@ -388,7 +389,7 @@ function HeroSection() {
             style={{
               fontSize: 'clamp(52px, 9vw, 130px)',
               letterSpacing: '-0.03em',
-              background: 'linear-gradient(135deg, #00FF87 0%, #00D4FF 100%)',
+              background: 'linear-gradient(135deg, #0EA5E9 0%, #00D4FF 100%)',
               WebkitBackgroundClip: 'text',
               WebkitTextFillColor: 'transparent',
               backgroundClip: 'text',
@@ -425,17 +426,17 @@ function HeroSection() {
             id="zeus-cta-agenda"
             className="inline-flex items-center justify-center gap-2 px-8 py-4 rounded-xl text-base font-bold transition-all duration-300"
             style={{
-              background: 'linear-gradient(135deg, #00FF87, #00D4FF)',
+              background: 'linear-gradient(135deg, #0EA5E9, #00D4FF)',
               color: '#0A0A0F',
-              boxShadow: '0 0 40px rgba(0,255,135,0.3)',
+              boxShadow: '0 0 40px rgba(14,165,233,0.3)',
             }}
             onMouseEnter={(e) => {
               (e.currentTarget as HTMLElement).style.transform = 'translateY(-2px)';
-              (e.currentTarget as HTMLElement).style.boxShadow = '0 0 60px rgba(0,255,135,0.5)';
+              (e.currentTarget as HTMLElement).style.boxShadow = '0 0 60px rgba(14,165,233,0.5)';
             }}
             onMouseLeave={(e) => {
               (e.currentTarget as HTMLElement).style.transform = 'translateY(0)';
-              (e.currentTarget as HTMLElement).style.boxShadow = '0 0 40px rgba(0,255,135,0.3)';
+              (e.currentTarget as HTMLElement).style.boxShadow = '0 0 40px rgba(14,165,233,0.3)';
             }}
           >
             Agendar primera sesión
@@ -447,15 +448,15 @@ function HeroSection() {
             className="inline-flex items-center justify-center gap-2 px-8 py-4 rounded-xl text-base font-semibold transition-all duration-300"
             style={{
               background: 'transparent',
-              border: '1px solid rgba(0,255,135,0.3)',
+              border: '1px solid rgba(14,165,233,0.3)',
               color: '#F0F0F0',
             }}
             onMouseEnter={(e) => {
-              (e.currentTarget as HTMLElement).style.borderColor = 'rgba(0,255,135,0.7)';
-              (e.currentTarget as HTMLElement).style.background = 'rgba(0,255,135,0.05)';
+              (e.currentTarget as HTMLElement).style.borderColor = 'rgba(14,165,233,0.7)';
+              (e.currentTarget as HTMLElement).style.background = 'rgba(14,165,233,0.05)';
             }}
             onMouseLeave={(e) => {
-              (e.currentTarget as HTMLElement).style.borderColor = 'rgba(0,255,135,0.3)';
+              (e.currentTarget as HTMLElement).style.borderColor = 'rgba(14,165,233,0.3)';
               (e.currentTarget as HTMLElement).style.background = 'transparent';
             }}
           >
@@ -476,7 +477,7 @@ function HeroSection() {
             className="w-px h-12"
             style={{
               background:
-                'linear-gradient(to bottom, rgba(0,255,135,0.5), transparent)',
+                'linear-gradient(to bottom, rgba(14,165,233,0.5), transparent)',
               animation: 'pulse 2s infinite',
             }}
           />
@@ -502,8 +503,8 @@ function StatsSection() {
       ref={ref}
       className="py-16 border-y"
       style={{
-        background: 'rgba(0,255,135,0.03)',
-        borderColor: 'rgba(0,255,135,0.1)',
+        background: 'rgba(14,165,233,0.03)',
+        borderColor: 'rgba(14,165,233,0.1)',
       }}
     >
       <div className="max-w-7xl mx-auto px-6">
@@ -518,7 +519,7 @@ function StatsSection() {
             >
               <div
                 className="text-4xl md:text-5xl font-black mb-1 tabular-nums"
-                style={{ color: '#00FF87' }}
+                style={{ color: '#0EA5E9' }}
               >
                 <AnimatedCounter
                   to={stat.suffix === '★' ? 49 : stat.to}
@@ -526,7 +527,7 @@ function StatsSection() {
                   duration={2}
                 />
                 {stat.suffix === '★' && (
-                  <span style={{ color: '#00FF87' }}>★</span>
+                  <span style={{ color: '#0EA5E9' }}>★</span>
                 )}
               </div>
               <div className="text-sm font-semibold mb-0.5" style={{ color: '#F0F0F0' }}>
@@ -646,7 +647,7 @@ function ServicesSection() {
       >
         <p
           className="text-xs font-bold tracking-widest uppercase mb-3"
-          style={{ color: '#00FF87' }}
+          style={{ color: '#0EA5E9' }}
         >
           ¿Qué ofrecemos?
         </p>
@@ -681,7 +682,7 @@ function HowItWorks() {
   return (
     <section
       className="py-24 relative overflow-hidden"
-      style={{ background: 'rgba(0,255,135,0.02)' }}
+      style={{ background: 'rgba(14,165,233,0.02)' }}
       ref={ref}
     >
       <div className="max-w-7xl mx-auto px-6">
@@ -691,7 +692,7 @@ function HowItWorks() {
           transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
           className="text-center mb-16"
         >
-          <p className="text-xs font-bold tracking-widest uppercase mb-3" style={{ color: '#00FF87' }}>
+          <p className="text-xs font-bold tracking-widest uppercase mb-3" style={{ color: '#0EA5E9' }}>
             El proceso
           </p>
           <h2
@@ -706,7 +707,7 @@ function HowItWorks() {
           {/* Connecting line desktop */}
           <div
             className="hidden md:block absolute top-1/4 left-[16.7%] right-[16.7%] h-px"
-            style={{ background: 'linear-gradient(90deg, transparent, rgba(0,255,135,0.3), transparent)' }}
+            style={{ background: 'linear-gradient(90deg, transparent, rgba(14,165,233,0.3), transparent)' }}
           />
 
           {STEPS.map((step, i) => (
@@ -725,9 +726,9 @@ function HowItWorks() {
               <div
                 className="inline-flex items-center justify-center w-12 h-12 rounded-xl font-black text-lg mb-6 mx-auto"
                 style={{
-                  background: 'linear-gradient(135deg, rgba(0,255,135,0.15), rgba(0,212,255,0.1))',
-                  border: '1px solid rgba(0,255,135,0.3)',
-                  color: '#00FF87',
+                  background: 'linear-gradient(135deg, rgba(14,165,233,0.15), rgba(0,212,255,0.1))',
+                  border: '1px solid rgba(14,165,233,0.3)',
+                  color: '#0EA5E9',
                 }}
               >
                 {step.num}
@@ -756,7 +757,7 @@ function ProductsSection() {
         className="flex flex-col md:flex-row md:items-end md:justify-between gap-6 mb-14"
       >
         <div>
-          <p className="text-xs font-bold tracking-widest uppercase mb-3" style={{ color: '#00FF87' }}>
+          <p className="text-xs font-bold tracking-widest uppercase mb-3" style={{ color: '#0EA5E9' }}>
             Productos destacados
           </p>
           <h2
@@ -771,8 +772,8 @@ function ProductsSection() {
         <a
           href="#"
           className="shrink-0 inline-flex items-center gap-2 px-6 py-3 rounded-xl text-sm font-semibold transition-all"
-          style={{ border: '1px solid rgba(0,255,135,0.3)', color: '#00FF87' }}
-          onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = 'rgba(0,255,135,0.05)'; }}
+          style={{ border: '1px solid rgba(14,165,233,0.3)', color: '#0EA5E9' }}
+          onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = 'rgba(14,165,233,0.05)'; }}
           onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = 'transparent'; }}
         >
           Ver catálogo completo →
@@ -873,7 +874,7 @@ function TestimonialsSection() {
           transition={{ duration: 0.7 }}
           className="text-center mb-14"
         >
-          <p className="text-xs font-bold tracking-widest uppercase mb-3" style={{ color: '#00FF87' }}>
+          <p className="text-xs font-bold tracking-widest uppercase mb-3" style={{ color: '#0EA5E9' }}>
             Resultados reales
           </p>
           <h2
@@ -906,13 +907,13 @@ function AgendaSection() {
       <div
         className="absolute inset-0"
         style={{
-          background: 'linear-gradient(135deg, rgba(0,255,135,0.05) 0%, rgba(0,212,255,0.03) 100%)',
+          background: 'linear-gradient(135deg, rgba(14,165,233,0.05) 0%, rgba(0,212,255,0.03) 100%)',
         }}
       />
       <div
         className="absolute inset-0"
         style={{
-          backgroundImage: 'linear-gradient(rgba(0,255,135,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(0,255,135,0.03) 1px, transparent 1px)',
+          backgroundImage: 'linear-gradient(rgba(14,165,233,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(14,165,233,0.03) 1px, transparent 1px)',
           backgroundSize: '40px 40px',
         }}
       />
@@ -925,7 +926,7 @@ function AgendaSection() {
         >
           {/* Big emoji */}
           <div className="text-6xl mb-6">🗓️</div>
-          <p className="text-xs font-bold tracking-widest uppercase mb-4" style={{ color: '#00FF87' }}>
+          <p className="text-xs font-bold tracking-widest uppercase mb-4" style={{ color: '#0EA5E9' }}>
             Agenda ahora
           </p>
           <h2
@@ -934,7 +935,7 @@ function AgendaSection() {
           >
             El primer paso
             <br />
-            <span style={{ background: 'linear-gradient(135deg, #00FF87, #00D4FF)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>
+            <span style={{ background: 'linear-gradient(135deg, #0EA5E9, #00D4FF)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>
               es agendarlo.
             </span>
           </h2>
@@ -946,7 +947,7 @@ function AgendaSection() {
           {/* Mock calendar preview */}
           <div
             className="max-w-2xl mx-auto rounded-2xl p-6 mb-10"
-            style={{ background: '#111118', border: '1px solid rgba(0,255,135,0.15)' }}
+            style={{ background: '#111118', border: '1px solid rgba(14,165,233,0.15)' }}
           >
             <div className="flex items-center justify-between mb-4">
               <span className="font-bold text-sm" style={{ color: '#F0F0F0' }}>Marzo 2026</span>
@@ -966,8 +967,8 @@ function AgendaSection() {
                   key={day}
                   className="py-2 rounded-lg text-center transition-all duration-200"
                   style={{
-                    background: day === 17 ? 'linear-gradient(135deg, #00FF87, #00D4FF)' : [19, 20, 24, 25, 26].includes(day) ? 'rgba(0,255,135,0.12)' : 'transparent',
-                    color: day === 17 ? '#0A0A0F' : [19, 20, 24, 25, 26].includes(day) ? '#00FF87' : day > 28 ? 'rgba(240,240,240,0.2)' : 'rgba(240,240,240,0.6)',
+                    background: day === 17 ? 'linear-gradient(135deg, #0EA5E9, #00D4FF)' : [19, 20, 24, 25, 26].includes(day) ? 'rgba(14,165,233,0.12)' : 'transparent',
+                    color: day === 17 ? '#0A0A0F' : [19, 20, 24, 25, 26].includes(day) ? '#0EA5E9' : day > 28 ? 'rgba(240,240,240,0.2)' : 'rgba(240,240,240,0.6)',
                     fontWeight: day === 17 ? 700 : 400,
                   }}
                 >
@@ -984,17 +985,17 @@ function AgendaSection() {
               id="zeus-cta-agendar-real"
               className="inline-flex items-center justify-center gap-2 px-10 py-4 rounded-xl text-base font-bold transition-all duration-300"
               style={{
-                background: 'linear-gradient(135deg, #00FF87, #00D4FF)',
+                background: 'linear-gradient(135deg, #0EA5E9, #00D4FF)',
                 color: '#0A0A0F',
-                boxShadow: '0 0 40px rgba(0,255,135,0.3)',
+                boxShadow: '0 0 40px rgba(14,165,233,0.3)',
               }}
               onMouseEnter={(e) => {
                 (e.currentTarget as HTMLElement).style.transform = 'scale(1.03)';
-                (e.currentTarget as HTMLElement).style.boxShadow = '0 0 60px rgba(0,255,135,0.5)';
+                (e.currentTarget as HTMLElement).style.boxShadow = '0 0 60px rgba(14,165,233,0.5)';
               }}
               onMouseLeave={(e) => {
                 (e.currentTarget as HTMLElement).style.transform = 'scale(1)';
-                (e.currentTarget as HTMLElement).style.boxShadow = '0 0 40px rgba(0,255,135,0.3)';
+                (e.currentTarget as HTMLElement).style.boxShadow = '0 0 40px rgba(14,165,233,0.3)';
               }}
             >
               Ir al Calendario de Disponibilidad Real
@@ -1005,8 +1006,8 @@ function AgendaSection() {
               rel="noopener noreferrer"
               id="zeus-cta-whatsapp"
               className="inline-flex items-center justify-center gap-2 px-8 py-4 rounded-xl text-base font-semibold transition-all duration-300"
-              style={{ border: '1px solid rgba(0,255,135,0.3)', color: '#F0F0F0' }}
-              onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = 'rgba(0,255,135,0.05)'; }}
+              style={{ border: '1px solid rgba(14,165,233,0.3)', color: '#F0F0F0' }}
+              onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = 'rgba(14,165,233,0.05)'; }}
               onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = 'transparent'; }}
             >
               <span>💬</span> Consultar por WhatsApp
@@ -1030,12 +1031,12 @@ function Footer() {
           <div className="flex items-center gap-3">
             <div
               className="w-8 h-8 rounded-lg flex items-center justify-center font-black text-sm"
-              style={{ background: 'linear-gradient(135deg, #00FF87, #00D4FF)' }}
+              style={{ background: 'linear-gradient(135deg, #0EA5E9, #00D4FF)' }}
             >
               <span className="text-[#0A0A0F]">Z</span>
             </div>
             <span className="font-bold text-white">
-              Asesorías Zeus<span style={{ color: '#00FF87' }}>.</span>
+              Asesorías Zeus<span style={{ color: '#0EA5E9' }}>.</span>
             </span>
           </div>
 

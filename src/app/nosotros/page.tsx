@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { motion } from 'framer-motion';
 import { AnimatedCounter } from '@/components/premium/AnimatedCounter';
@@ -17,7 +17,7 @@ export default function NosotrosPage() {
     <div className="relative pt-32 pb-24 overflow-hidden">
       {/* Background element */}
       <AnimatedGradient
-        colors={['#00FF8708', '#00D4FF05', '#0A0A0F00']}
+        colors={['#0EA5E908', '#00D4FF05', '#0A0A0F00']}
         speed={15}
         blur={120}
         opacity={1}
@@ -33,7 +33,7 @@ export default function NosotrosPage() {
         >
           <span
             className="inline-block px-3 py-1 rounded-full text-[10px] font-bold tracking-widest uppercase mb-6"
-            style={{ background: 'rgba(0,255,135,0.1)', color: '#00FF87', border: '1px solid rgba(0,255,135,0.2)' }}
+            style={{ background: 'rgba(14,165,233,0.1)', color: '#0EA5E9', border: '1px solid rgba(14,165,233,0.2)' }}
           >
             Sobre Nosotros
           </span>
@@ -42,7 +42,7 @@ export default function NosotrosPage() {
             style={{ letterSpacing: '-0.03em' }}
           >
             Arquitectos de la <br />
-            <span style={{ background: 'linear-gradient(135deg, #00FF87, #00D4FF)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>
+            <span style={{ background: 'linear-gradient(135deg, #0EA5E9, #00D4FF)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>
               Economía Circular.
             </span>
           </h1>
@@ -66,7 +66,7 @@ export default function NosotrosPage() {
              </p>
              <div className="flex flex-wrap gap-4">
                 {['Innovación', 'Triple Impacto', 'Conocimiento Aplicado', 'Escalabilidad'].map(tag => (
-                   <span key={tag} className="px-4 py-2 rounded-xl text-xs font-semibold" style={{ background: 'rgba(0,255,135,0.05)', color: '#00FF87', border: '1px solid rgba(0,255,135,0.1)' }}>{tag}</span>
+                   <span key={tag} className="px-4 py-2 rounded-xl text-xs font-semibold" style={{ background: 'rgba(14,165,233,0.05)', color: '#0EA5E9', border: '1px solid rgba(14,165,233,0.1)' }}>{tag}</span>
                 ))}
              </div>
           </motion.div>
@@ -90,7 +90,7 @@ export default function NosotrosPage() {
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-8 py-16 border-y" style={{ borderColor: 'rgba(255,255,255,0.05)' }}>
           {stats.map((stat, i) => (
             <div key={i} className="text-center">
-              <div className="text-4xl md:text-5xl font-black mb-2" style={{ color: '#00FF87' }}>
+              <div className="text-4xl md:text-5xl font-black mb-2" style={{ color: '#0EA5E9' }}>
                 <AnimatedCounter to={stat.suffix === '★' ? 49 : stat.to} suffix={stat.suffix === '★' ? '' : stat.suffix} duration={2} />
                 {stat.suffix === '★' && <span>★</span>}
               </div>

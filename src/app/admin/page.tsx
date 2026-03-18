@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState, useEffect } from 'react';
 import { createBrowserClient } from '@supabase/ssr';
@@ -13,7 +13,7 @@ const Toast = ({ message, type, onClose }: { message: string, type: 'success' | 
     animate={{ opacity: 1, y: 0, x: 0 }}
     exit={{ opacity: 0, scale: 0.9 }}
     className={`fixed bottom-8 right-8 z-[100] px-6 py-4 rounded-2xl shadow-2xl border flex items-center gap-4 backdrop-blur-xl
-              ${type === 'success' ? 'bg-[#00FF8710] border-[#00FF8720] text-[#00FF87]' : 
+              ${type === 'success' ? 'bg-[#0EA5E910] border-[#0EA5E920] text-[#0EA5E9]' : 
                 type === 'error' ? 'bg-red-500/10 border-red-500/20 text-red-500' : 
                 'bg-white/5 border-white/10 text-white'}`}
   >
@@ -299,7 +299,7 @@ export default function ZeusAdminPage() {
                 onClick={() => setActiveTab(t as any)}
                 className={`uppercase tracking-widest font-black transition-all pb-1 border-b-2 ${
                   activeTab === t
-                    ? 'text-[#00FF87] border-[#00FF87]'
+                    ? 'text-[#0EA5E9] border-[#0EA5E9]'
                     : 'text-white/30 border-transparent hover:text-white/60'
                 }`}
               >
@@ -313,7 +313,7 @@ export default function ZeusAdminPage() {
             onClick={fetchData}
             className="px-5 py-2 rounded-lg bg-white/5 border border-white/10 text-xs font-bold hover:bg-white/10 transition-all flex items-center gap-2"
           >
-            {loading && <div className="w-3 h-3 border-2 border-[#00FF87] border-t-transparent animate-spin rounded-full" />}
+            {loading && <div className="w-3 h-3 border-2 border-[#0EA5E9] border-t-transparent animate-spin rounded-full" />}
             Refrescar
           </button>
         </div>
@@ -324,7 +324,7 @@ export default function ZeusAdminPage() {
               {/* Calendario Semanal Interactivo */}
               <div className="bg-[#111118] border border-white/5 rounded-2xl p-6">
                 <div className="flex justify-between items-center mb-8">
-                   <h3 className="text-sm font-bold uppercase tracking-widest text-[#00FF87]">Calendario Semanal</h3>
+                   <h3 className="text-sm font-bold uppercase tracking-widest text-[#0EA5E9]">Calendario Semanal</h3>
                    <span className="text-[10px] text-white/30 font-bold uppercase">{format(selectedDate, 'MMMM yyyy', { locale: es })}</span>
                 </div>
                 <div className="grid grid-cols-7 gap-4">
@@ -343,14 +343,14 @@ export default function ZeusAdminPage() {
                         key={day.toString()} 
                         onClick={() => setSelectedDate(day)}
                         className={`flex flex-col items-center p-4 rounded-xl border transition-all 
-                                  ${isSelected ? 'border-[#00FF87] bg-[#00FF87]/5 scale-105' : 'border-white/5 bg-white/[0.02] hover:border-white/20'}`}
+                                  ${isSelected ? 'border-[#0EA5E9] bg-[#0EA5E9]/5 scale-105' : 'border-white/5 bg-white/[0.02] hover:border-white/20'}`}
                       >
                         <span className="text-[10px] uppercase text-white/20 mb-2">{format(day, 'EEE', { locale: es })}</span>
                         <span className="text-sm font-black">{format(day, 'd')}</span>
                         {dayBookings.length > 0 && (
                           <div className="flex gap-1 mt-2">
                             {dayBookings.map((b, i) => (
-                              <div key={i} className={`w-1.5 h-1.5 rounded-full ${b.client_name === 'ADMIN_BLOCK' ? 'bg-white/20' : 'bg-[#00FF87]'}`} />
+                              <div key={i} className={`w-1.5 h-1.5 rounded-full ${b.client_name === 'ADMIN_BLOCK' ? 'bg-white/20' : 'bg-[#0EA5E9]'}`} />
                             ))}
                           </div>
                         )}
@@ -364,7 +364,7 @@ export default function ZeusAdminPage() {
               <div className="bg-[#111118] border border-white/5 rounded-2xl p-6">
                  <div className="flex justify-between items-center mb-6">
                     <h3 className="text-xs font-black uppercase tracking-widest text-white/50">Bloquear Horarios: <span className="text-white">{format(selectedDate, 'dd MMMM', { locale: es })}</span></h3>
-                    {isBlocking && <span className="text-[10px] text-[#00FF87] animate-pulse uppercase font-black">Procesando...</span>}
+                    {isBlocking && <span className="text-[10px] text-[#0EA5E9] animate-pulse uppercase font-black">Procesando...</span>}
                  </div>
                  <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
                    {hours.map(hour => {
@@ -386,10 +386,10 @@ export default function ZeusAdminPage() {
                          onClick={() => isAdminBlock ? handleUnblockSlot(hour) : handleBlockSlot(hour)}
                          className={`py-3 rounded-xl border text-[11px] font-black transition-all
                                    ${isAdminBlock 
-                                     ? 'border-[#00FF87] bg-[#00FF87]/10 text-[#00FF87] hover:bg-red-500/10 hover:border-red-500/50 hover:text-red-500' 
+                                     ? 'border-[#0EA5E9] bg-[#0EA5E9]/10 text-[#0EA5E9] hover:bg-red-500/10 hover:border-red-500/50 hover:text-red-500' 
                                      : isOccupied 
                                        ? 'bg-white/5 border-white/5 text-white/10 cursor-not-allowed' 
-                                       : 'border-[#00FF87]/20 hover:border-[#00FF87] hover:bg-[#00FF87]/5 text-white/60 hover:text-white'}`}
+                                       : 'border-[#0EA5E9]/20 hover:border-[#0EA5E9] hover:bg-[#0EA5E9]/5 text-white/60 hover:text-white'}`}
                        >
                          {hour} {isAdminBlock ? '🔓' : isOccupied ? '•' : ''}
                        </button>
@@ -423,16 +423,16 @@ export default function ZeusAdminPage() {
                                </td>
                                <td className="px-6 py-4">
                                   <span className={`text-[10px] px-2 py-0.5 rounded border uppercase font-black tracking-tighter
-                                                  ${b.client_name === 'ADMIN_BLOCK' ? 'border-white/10 text-white/40 bg-white/5' : 'border-[#00FF8730] text-[#00FF87] bg-[#00FF8705]'}`}>
+                                                  ${b.client_name === 'ADMIN_BLOCK' ? 'border-white/10 text-white/40 bg-white/5' : 'border-[#0EA5E930] text-[#0EA5E9] bg-[#0EA5E905]'}`}>
                                     {b.service_name}
                                   </span>
                                </td>
                                <td className="px-6 py-4">
                                   <div className="font-bold">{format(new Date(b.booking_date + 'T12:00:00'), 'dd MMM', { locale: es })}</div>
-                                  <div className="text-[10px] text-[#00FF87] font-black">{b.booking_slot}</div>
+                                  <div className="text-[10px] text-[#0EA5E9] font-black">{b.booking_slot}</div>
                                </td>
                                <td className="px-6 py-4">
-                                  <span className={`text-[10px] font-black uppercase tracking-widest ${b.payment_status === 'paid' ? 'text-[#00FF87]' : 'text-orange-400'}`}>
+                                  <span className={`text-[10px] font-black uppercase tracking-widest ${b.payment_status === 'paid' ? 'text-[#0EA5E9]' : 'text-orange-400'}`}>
                                      {b.payment_status === 'paid' ? 'Pagado' : 'Pendiente'}
                                   </span>
                                </td>
@@ -450,9 +450,9 @@ export default function ZeusAdminPage() {
 
             {/* Sidebar con Métricas Reales */}
             <div className="space-y-6">
-              <div className="bg-gradient-to-br from-[#00FF8710] to-transparent border border-[#00FF8720] rounded-2xl p-8 relative overflow-hidden group shadow-xl">
+              <div className="bg-gradient-to-br from-[#0EA5E910] to-transparent border border-[#0EA5E920] rounded-2xl p-8 relative overflow-hidden group shadow-xl">
                   <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">💎</div>
-                  <h4 className="text-xs font-black uppercase tracking-widest text-[#00FF87] mb-8">Rendimiento Agenda</h4>
+                  <h4 className="text-xs font-black uppercase tracking-widest text-[#0EA5E9] mb-8">Rendimiento Agenda</h4>
                   <div className="space-y-8">
                      <div>
                         <div className="text-4xl font-black">{bookings.filter(b => b.payment_status === 'paid' && b.client_name !== 'ADMIN_BLOCK').length}</div>
@@ -514,7 +514,7 @@ export default function ZeusAdminPage() {
                              </td>
                              <td className="px-6 py-4">
                                 <span className={`text-[9px] font-black px-2 py-0.5 rounded tracking-widest uppercase
-                                                ${p.is_free ? 'bg-[#00D4FF10] text-[#00D4FF] border border-[#00D4FF20]' : 'bg-[#00FF8710] text-[#00FF87] border border-[#00FF8720]'}`}>
+                                                ${p.is_free ? 'bg-[#00D4FF10] text-[#00D4FF] border border-[#00D4FF20]' : 'bg-[#0EA5E910] text-[#0EA5E9] border border-[#0EA5E920]'}`}>
                                    {p.is_free ? 'Gratis' : 'Premium'}
                                 </span>
                              </td>
@@ -542,15 +542,15 @@ export default function ZeusAdminPage() {
             <div className="space-y-6">
                {/* Formulario con Rigor en Validaciones */}
                <div className="bg-[#111118] border border-white/5 rounded-2xl p-6 shadow-xl">
-                  <h4 className="text-xs font-black uppercase tracking-widest text-[#00FF87] mb-8 flex justify-between">
+                  <h4 className="text-xs font-black uppercase tracking-widest text-[#0EA5E9] mb-8 flex justify-between">
                      Añadir Producto
-                     {isSavingProduct && <div className="w-3 h-3 border-2 border-[#00FF87] border-t-transparent animate-spin rounded-full" />}
+                     {isSavingProduct && <div className="w-3 h-3 border-2 border-[#0EA5E9] border-t-transparent animate-spin rounded-full" />}
                   </h4>
                   <div className="space-y-6">
                      <div>
                         <label className="text-[9px] uppercase text-white/30 font-black mb-2 block">Nombre del Recurso</label>
                         <input value={newProduct.name} onChange={e => setNewProduct({...newProduct, name: e.target.value})}
-                               className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-4 text-xs outline-none focus:border-[#00FF87] transition-all" placeholder="Ej: Manual de Identidad" />
+                               className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-4 text-xs outline-none focus:border-[#0EA5E9] transition-all" placeholder="Ej: Manual de Identidad" />
                      </div>
                      <div className="grid grid-cols-2 gap-4">
                         <div>
@@ -566,13 +566,13 @@ export default function ZeusAdminPage() {
   });
 }}
                                   disabled={newProduct.is_free}
-                                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-4 text-xs outline-none focus:border-[#00FF87]" />
+                                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-4 text-xs outline-none focus:border-[#0EA5E9]" />
                         </div>
                         <div className="flex flex-col justify-end">
                            <label className="flex items-center gap-2 cursor-pointer p-4 bg-white/5 rounded-xl border border-white/10 hover:bg-white/[0.08] transition-all">
                               <input
                                 type="checkbox"
-                                className="accent-[#00FF87]"
+                                className="accent-[#0EA5E9]"
                                 checked={newProduct.is_free}
                                 onChange={e => {
                                   const checked = e.target.checked;
@@ -594,7 +594,7 @@ export default function ZeusAdminPage() {
                         <div>
                            <label className="text-[9px] uppercase text-white/30 font-black mb-2 block">Subir Portada {isUploadingCover && '⏳'}</label>
                            <div className={`relative h-28 border-2 border-dashed rounded-2xl flex flex-col items-center justify-center transition-all overflow-hidden
-                                         ${isUploadingCover ? 'border-[#00FF87] bg-[#00FF8705]' : 'border-white/10 hover:border-white/20'}`}>
+                                         ${isUploadingCover ? 'border-[#0EA5E9] bg-[#0EA5E905]' : 'border-white/10 hover:border-white/20'}`}>
                               <input type="file" onChange={handleCoverUpload} className="absolute inset-0 opacity-0 cursor-pointer z-10" disabled={isUploadingCover} accept="image/*" />
                               {coverPreviewUrl ? (
                                 <motion.img initial={{ opacity: 0 }} animate={{ opacity: 1 }} src={coverPreviewUrl} className="h-full w-full object-cover" alt="" />
@@ -610,7 +610,7 @@ export default function ZeusAdminPage() {
                         <div>
                            <label className="text-[9px] uppercase text-white/30 font-black mb-2 block">Cargar Producto Digital {isUploading && '⏳'}</label>
                            <div className={`relative h-28 border-2 border-dashed rounded-2xl flex flex-col items-center justify-center transition-all 
-                                         ${isUploading ? 'border-[#00FF87] bg-[#00FF8705]' : 'border-white/10 hover:border-white/20'}`}>
+                                         ${isUploading ? 'border-[#0EA5E9] bg-[#0EA5E905]' : 'border-white/10 hover:border-white/20'}`}>
                               <input
                                 type="file"
                                 onChange={handleFileUpload}
@@ -620,7 +620,7 @@ export default function ZeusAdminPage() {
                               />
                               {newProduct.file_path ? (
                                 <motion.div initial={{ scale: 0.9 }} animate={{ scale: 1 }} className="text-center">
-                                   <div className="text-[10px] text-[#00FF87] font-black uppercase mb-1">✓ Archivo Verificado</div>
+                                   <div className="text-[10px] text-[#0EA5E9] font-black uppercase mb-1">✓ Archivo Verificado</div>
                                    <div className="text-[8px] text-white/30 truncate max-w-[140px] italic">{newProduct.file_path.split('/').pop()}</div>
                                 </motion.div>
                               ) : (
@@ -637,7 +637,7 @@ export default function ZeusAdminPage() {
                         onClick={handleSaveProduct} 
                         disabled={isSavingProduct || !newProduct.name || !newProduct.file_path || isUploading || isUploadingCover}
                         className="w-full py-5 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all shadow-2xl active:scale-95 disabled:opacity-30 disabled:grayscale disabled:cursor-not-allowed group"
-                        style={{ background: '#00FF87', color: '#0A0A0F', boxShadow: '0 0 40px rgba(0,255,135,0.1)' }}
+                        style={{ background: '#0EA5E9', color: '#0A0A0F', boxShadow: '0 0 40px rgba(14,165,233,0.1)' }}
                      >
                         <span className="group-hover:tracking-[0.2em] transition-all">
                            {isSavingProduct ? 'Sincronizando...' : 'Publicar Ahora →'}

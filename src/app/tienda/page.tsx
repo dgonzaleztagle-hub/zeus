@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -144,7 +144,7 @@ export default function TiendaPage() {
   return (
     <div className="relative pt-32 pb-24 min-h-screen overflow-hidden text-white">
       <AnimatedGradient
-        colors={['#00FF8705', '#00D4FF03', '#0A0A0F00']}
+        colors={['#0EA5E905', '#00D4FF03', '#0A0A0F00']}
         speed={15}
         blur={120}
         opacity={1}
@@ -153,9 +153,9 @@ export default function TiendaPage() {
       <div className="max-w-7xl mx-auto px-6 relative z-10">
         {/* Header */}
         <div className="mb-16">
-          <span className="text-xs font-bold tracking-widest uppercase mb-4 block" style={{ color: '#00FF87' }}>Tienda Digital</span>
+          <span className="text-xs font-bold tracking-widest uppercase mb-4 block" style={{ color: '#0EA5E9' }}>Tienda Digital</span>
           <h1 className="text-5xl md:text-7xl font-black mb-6" style={{ letterSpacing: '-.03em' }}>
-            Acelera tu <span style={{ background: 'linear-gradient(135deg, #00FF87, #00D4FF)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>Impacto.</span>
+            Acelera tu <span style={{ background: 'linear-gradient(135deg, #0EA5E9, #00D4FF)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>Impacto.</span>
           </h1>
           <p className="text-lg max-w-xl text-white/50 leading-relaxed font-semibold">
             Herramientas diseñadas para la implementación inmediata. Sin teoría vacía, solo resultados accionables.
@@ -185,14 +185,14 @@ export default function TiendaPage() {
                      {prod.image_url ? (
                        <img src={prod.image_url} className="w-full h-full object-cover" alt="" />
                      ) : (
-                       <div className="w-full h-full bg-gradient-to-br from-[#00FF8720] to-transparent" />
+                       <div className="w-full h-full bg-gradient-to-br from-[#0EA5E920] to-transparent" />
                      )}
                   </div>
                   
                   <div className="flex justify-between items-start mb-8 relative z-10">
                     <div className="text-5xl group-hover:scale-110 transition-transform">💎</div>
                     <span className="px-3 py-1 rounded-full text-[9px] font-black tracking-widest uppercase" 
-                          style={{ background: `#00FF8715`, color: '#00FF87', border: `1px solid #00FF8730` }}>
+                          style={{ background: `#0EA5E915`, color: '#0EA5E9', border: `1px solid #0EA5E930` }}>
                       Premium
                     </span>
                   </div>
@@ -204,7 +204,7 @@ export default function TiendaPage() {
                      <button 
                        onClick={() => handleBuy(prod)}
                        disabled={simulatingPaymentId === prod.id || downloadingId === prod.id}
-                       className="w-full h-14 rounded-xl flex items-center justify-center font-bold transition-all duration-300 bg-white/5 border border-white/10 hover:bg-[#00FF87] hover:text-[#0A0A0F]"
+                       className="w-full h-14 rounded-xl flex items-center justify-center font-bold transition-all duration-300 bg-white/5 border border-white/10 hover:bg-[#0EA5E9] hover:text-[#0A0A0F]"
                      >
                        {simulatingPaymentId === prod.id
                          ? 'Simulando pago...'

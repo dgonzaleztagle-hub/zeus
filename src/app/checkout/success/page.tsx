@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useEffect, useState, Suspense } from 'react';
 import { motion } from 'framer-motion';
@@ -45,7 +45,7 @@ function SuccessContent() {
         style={{ boxShadow: '0 30px 60px rgba(0,0,0,0.5)' }}
       >
         <div 
-          className="w-20 h-20 rounded-full bg-green-500/10 border border-green-500/20 flex items-center justify-center mx-auto mb-8"
+          className="w-20 h-20 rounded-full bg-sky-500/10 border border-sky-500/20 flex items-center justify-center mx-auto mb-8"
         >
           <span className="text-4xl">✅</span>
         </div>
@@ -59,7 +59,7 @@ function SuccessContent() {
         <div className="grid gap-4">
           <Link href="/" 
                 className="w-full py-4 rounded-xl font-bold transition-all"
-                style={{ background: 'linear-gradient(135deg, #00FF87, #00D4FF)', color: '#0A0A0F' }}>
+                style={{ background: 'linear-gradient(135deg, #0EA5E9, #00D4FF)', color: '#0A0A0F' }}>
              Volver al Inicio
           </Link>
           <div className="text-[10px] tracking-widest uppercase text-white/20 mt-4">

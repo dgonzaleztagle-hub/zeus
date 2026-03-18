@@ -13,11 +13,12 @@ export default function ZeusLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="relative min-h-screen flex flex-col" style={{ background: '#0A0A0F', color: '#F0F0F0' }}>
-      {/* Grain overlay global — anti-plantilla */}
-      <GrainTexture opacity={0.06} blendMode="overlay" />
-      
-      <ZeusPageFrame>{children}</ZeusPageFrame>
-    </div>
+    <html lang="es">
+      <body className="relative min-h-screen flex flex-col" style={{ background: '#0A0A0F', color: '#F0F0F0' }}>
+        {/* Grain overlay global — anti-plantilla */}
+        <GrainTexture opacity={0.06} blendMode="overlay" />
+        <ZeusPageFrame>{children}</ZeusPageFrame>
+      </body>
+    </html>
   );
 }

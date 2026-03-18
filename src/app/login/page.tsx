@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -98,7 +98,7 @@ export default function ZeusLoginPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="tu@email.com"
-                className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/40 focus:outline-none focus:border-[#00FF87] focus:ring-2 focus:ring-[#00FF87]/20 transition-all"
+                className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/40 focus:outline-none focus:border-[#0EA5E9] focus:ring-2 focus:ring-[#0EA5E9]/20 transition-all"
                 required
               />
             </div>
@@ -115,7 +115,7 @@ export default function ZeusLoginPage() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
-                  className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/40 focus:outline-none focus:border-[#00FF87] focus:ring-2 focus:ring-[#00FF87]/20 transition-all pr-12"
+                  className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/40 focus:outline-none focus:border-[#0EA5E9] focus:ring-2 focus:ring-[#0EA5E9]/20 transition-all pr-12"
                   required
                 />
                 <button
@@ -148,7 +148,7 @@ export default function ZeusLoginPage() {
               className={`w-full py-3 px-4 rounded-lg font-bold text-[#0A0A0F] transition-all ${
                 loading
                   ? 'bg-white/50 cursor-not-allowed'
-                  : 'bg-[#00FF87] hover:bg-[#00FF87]/90 shadow-lg shadow-[#00FF87]/20'
+                  : 'bg-[#0EA5E9] hover:bg-[#0EA5E9]/90 shadow-lg shadow-[#0EA5E9]/20'
               }`}
             >
               {loading ? (
@@ -183,7 +183,7 @@ export default function ZeusLoginPage() {
 
       {/* Background Gradient */}
       <div className="fixed inset-0 z-[-1]">
-        <div className="absolute top-0 left-1/4 w-96 h-96 bg-[#00FF87]/5 rounded-full blur-3xl opacity-30"></div>
+        <div className="absolute top-0 left-1/4 w-96 h-96 bg-[#0EA5E9]/5 rounded-full blur-3xl opacity-30"></div>
         <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-blue-500/5 rounded-full blur-3xl opacity-30"></div>
       </div>
     </div>
