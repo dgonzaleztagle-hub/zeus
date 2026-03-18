@@ -21,7 +21,7 @@ const SERVICES = [
     accent: '#0EA5E9',
     href: '/agenda',
     price: 'Desde $29.900',
-    image: null
+    image: '/prospectos/zeus/asesorias.png'
   },
   {
     id: 'tecnicos',
@@ -34,7 +34,7 @@ const SERVICES = [
     accent: '#00D4FF',
     href: '/tecnicos',
     price: 'Soporte Especializado',
-    image: null
+    image: '/prospectos/zeus/tecnicos.png'
   },
   {
     id: 'digitales',
@@ -60,7 +60,7 @@ const SERVICES = [
     accent: '#A78BFA',
     href: '/biblioteca',
     price: 'Acceso Libre',
-    image: null
+    image: '/prospectos/zeus/biblioteca.png'
   },
 ];
 
