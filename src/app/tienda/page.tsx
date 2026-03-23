@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -35,35 +35,36 @@ export default function TiendaPage() {
       return;
     }
 
-    // Simulación de venta exitosa para pruebas mientras Toku está pendiente
+    // Para productos de pago, necesitamos el email para el envío/acceso
+    const email = window.prompt("Por favor, ingresa tu correo electrónico para enviarte el acceso a la descarga:", "");
+    if (!email || !email.includes('@')) {
+      alert("Se requiere un correo electrónico válido para procesar la compra.");
+      return;
+    }
+
     setSimulatingPaymentId(product.id);
     try {
-      await new Promise(resolve => setTimeout(resolve, 1200));
+      const res = await fetch('/api/zeus/checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: 'product',
+          item_id: product.id,
+          item_name: product.name,
+          amount: product.price,
+          client_name: 'Cliente Zeus',
+          client_email: email,
+        })
+      });
 
-      // Celebración visual para la compra premium simulada
-      if (typeof window !== 'undefined' && confetti) {
-        try {
-          const duration = 1400;
-          const animationEnd = Date.now() + duration;
-          const defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 90 };
-          
-          const interval = setInterval(() => {
-            const timeLeft = animationEnd - Date.now();
-            if (timeLeft <= 0) {
-              clearInterval(interval);
-              return;
-            }
-            const particleCount = 40 * (timeLeft / duration);
-            confetti({ ...defaults, particleCount, origin: { x: 0.2, y: 0.2 } });
-            confetti({ ...defaults, particleCount, origin: { x: 0.8, y: 0.2 } });
-          }, 250);
-        } catch (e) {
-          console.error('Error al mostrar confetti:', e);
-        }
+      const data = await res.json();
+      if (data.payment_url) {
+        window.location.href = data.payment_url;
+      } else {
+        throw new Error(data.error || 'No se pudo generar el link de pago');
       }
-
-      alert(`Pago simulado aprobado para "${product.name}" por $${product.price.toLocaleString('es-CL')}. Iniciando descarga...`);
-      await handleDownload(product);
+    } catch (error: any) {
+      alert(error.message || 'Error al iniciar el pago. Reintenta por favor.');
     } finally {
       setSimulatingPaymentId(null);
     }

@@ -9,59 +9,35 @@ import { GrainTexture } from '@/components/premium/GrainTexture';
 
 // ─── DATOS FALSEADOS (Demo) ──────────────────────────────────────────────────
 
-const SERVICES = [
+// Los servicios se cargan dinámicamente desde la BD.
+// Se mantiene esta estructura como "fallback" inicial para evitar saltos visuales.
+const INITIAL_SERVICES = [
   {
     id: 'asesorias',
     tag: 'SERVICIO PRINCIPAL',
     title: 'Asesorías Profesionales',
-    desc: 'Sesiones 1:1 con expertos en sostenibilidad, tecnología aplicada y economía circular. Diagnóstico real, soluciones concretas.',
+    description: 'Sesiones 1:1 con expertos en sostenibilidad, tecnología aplicada y economía circular. Diagnóstico real, soluciones concretas.',
     icon: '⚡',
     cta: 'Agendar sesión',
     size: 'large',
-    accent: '#0EA5E9',
+    accent_color: '#0EA5E9',
     href: '/agenda',
-    price: 'Desde $29.900',
-    image: '/prospectos/zeus/asesorias.png'
-  },
-  {
-    id: 'tecnicos',
-    tag: 'TÉCNICO',
-    title: 'Servicios Técnicos',
-    desc: 'Mantenimiento y reparación de equipos con foco en maximizar vida útil y reducir huella ambiental.',
-    icon: '🔧',
-    cta: 'Ver disponibilidad',
-    size: 'medium',
-    accent: '#00D4FF',
-    href: '/tecnicos',
-    price: 'Soporte Especializado',
-    image: '/prospectos/zeus/tecnicos.png'
+    price_label: 'Desde $29.900',
+    image_path: '/prospectos/zeus/asesorias.png'
   },
   {
     id: 'digitales',
     tag: 'CATÁLOGO',
     title: 'Productos Digitales',
-    desc: 'Guías, plantillas y herramientas descargables de alta calidad. Compra y descarga inmediata.',
+    description: 'Guías, plantillas y herramientas descargables de alta calidad. Compra y descarga inmediata.',
     icon: '📦',
     cta: 'Explorar catálogo',
     size: 'medium',
-    accent: '#0EA5E9',
+    accent_color: '#0EA5E9',
     href: '/tienda',
-    price: 'Kit Digital',
-    image: '/prospectos/zeus/products.png'
-  },
-  {
-    id: 'biblioteca',
-    tag: 'GRATUITO',
-    title: 'Biblioteca Digital',
-    desc: 'Contenido educativo abierto. Aprende sin barreras sobre sostenibilidad y tecnología aplicada.',
-    icon: '📚',
-    cta: 'Acceder gratis',
-    size: 'large',
-    accent: '#A78BFA',
-    href: '/biblioteca',
-    price: 'Acceso Libre',
-    image: '/prospectos/zeus/biblioteca.png'
-  },
+    price_label: 'Kit Digital',
+    image_path: '/prospectos/zeus/products.png'
+  }
 ];
 
 const PRODUCTS = [
@@ -561,18 +537,18 @@ function ServiceCard({ service, index, inView }: { service: any; index: number; 
       className={`group relative rounded-3xl p-8 flex flex-col justify-between transition-all duration-500 overflow-hidden border 
                  ${service.size === 'large' ? 'col-span-12 md:col-span-7' : 'col-span-12 md:col-span-5'}`}
       style={{
-        background: `linear-gradient(135deg, ${service.accent}08 0%, #0A0A0F 100%)`,
-        borderColor: `${service.accent}20`,
+        background: `linear-gradient(135deg, ${service.accent_color || '#0EA5E9'}08 0%, #0A0A0F 100%)`,
+        borderColor: `${service.accent_color || '#0EA5E9'}20`,
         minHeight: '340px',
         textDecoration: 'none',
         position: 'relative'
       }}
     >
        {/* Background Image (If exists) */}
-       {service.image && (
+       {service.image_path && (
          <div className="absolute inset-0 z-0 transition-transform duration-700 group-hover:scale-110"
               style={{ 
-                backgroundImage: `url(${service.image})`,
+                backgroundImage: `url(${service.image_path})`,
                 backgroundSize: 'cover',
                 backgroundPosition: 'center',
                 backgroundBlendMode: 'luminosity',
@@ -581,14 +557,14 @@ function ServiceCard({ service, index, inView }: { service: any; index: number; 
        )}
        
        {/* Readability Overlay for Image */}
-       {service.image && (
+       {service.image_path && (
          <div className="absolute inset-0 z-[1] bg-[#0A0A0F]/60 group-hover:bg-[#0A0A0F]/40 transition-colors duration-500" />
        )}
 
        {/* Glow Effect */}
        <div className="absolute inset-0 z-[2] opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none"
             style={{ 
-              background: `radial-gradient(circle at var(--mouse-x, 50%) var(--mouse-y, 50%), ${service.accent}15 0%, transparent 80%)` 
+              background: `radial-gradient(circle at var(--mouse-x, 50%) var(--mouse-y, 50%), ${service.accent_color}15 0%, transparent 80%)` 
             }} />
        
        <GrainTexture opacity={0.03} />
@@ -597,78 +573,76 @@ function ServiceCard({ service, index, inView }: { service: any; index: number; 
        <div className="relative z-10 font-sans">
           <div className="flex justify-between items-start mb-6">
              <span className="inline-block px-3 py-1 rounded-full text-[10px] font-black tracking-widest uppercase"
-                   style={{ background: `${service.accent}15`, color: service.accent, border: `1px solid ${service.accent}30` }}>
-               {service.tag}
+                   style={{ background: `${service.accent_color}15`, color: service.accent_color, border: `1px solid ${service.accent_color}30` }}>
+                {service.tag}
              </span>
-             <div className="text-4xl group-hover:scale-110 group-hover:rotate-12 transition-transform duration-500 origin-center drop-shadow-2xl">
-               {service.icon}
-             </div>
+             <span className="text-2xl">{service.icon}</span>
           </div>
-          
-          <h3 className="text-2xl font-black text-white/90 mb-3 tracking-tight group-hover:text-white transition-colors">
-            {service.title}
-          </h3>
-          
-          <p className="text-sm text-white/40 leading-relaxed font-medium group-hover:text-white/60 transition-colors"
-             style={{ display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
-            {service.desc}
-          </p>
+
+          <div className="mb-4">
+             <h3 className="text-2xl font-black text-white mb-2 leading-tight tracking-tight uppercase">{service.title}</h3>
+             <p className="text-[13px] leading-relaxed text-white/50 group-hover:text-white/80 transition-colors line-clamp-3">
+                {service.description}
+             </p>
+          </div>
        </div>
 
-       <div className="relative z-10 mt-8 flex items-end justify-between font-sans">
-          <div className="flex items-center gap-2 text-[11px] font-black uppercase tracking-widest transition-all"
-               style={{ color: service.accent }}>
-            <span className="relative">
-              {service.cta}
-              <div className="absolute -bottom-1 left-0 w-0 h-px transition-all duration-500 group-hover:w-full" style={{ background: service.accent }} />
-            </span>
-            <span className="group-hover:translate-x-1 transition-transform">→</span>
+       <div className="relative z-10">
+          <div className="flex items-end justify-between mb-2">
+             <span className="text-[10px] font-black uppercase text-white/30 tracking-widest">{service.price_label}</span>
           </div>
-          {service.price && (
-            <span className="text-[10px] text-white/20 font-bold uppercase tracking-widest">{service.price}</span>
-          )}
+          <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest group-hover:gap-4 transition-all"
+               style={{ color: service.accent_color }}>
+             {service.cta} <span>→</span>
+          </div>
        </div>
     </motion.a>
   );
 }
 
 function ServicesSection() {
-  const ref = useRef<HTMLDivElement>(null);
-  const inView = useInView(ref, { once: true, margin: '-80px' });
+  const [services, setServices] = useState<any[]>(INITIAL_SERVICES);
+  const ref = useRef(null);
+  const inView = useInView(ref, { once: true, margin: '-100px' });
+
+  useEffect(() => {
+    const fetchServices = async () => {
+      try {
+        const res = await fetch('/api/zeus/services');
+        const data = await res.json();
+        if (data.services && data.services.length > 0) {
+          setServices(data.services);
+        }
+      } catch (err) {
+        console.error('Error fetching services:', err);
+      }
+    };
+    fetchServices();
+  }, []);
 
   return (
     <section id="servicios" className="py-24 px-6 max-w-7xl mx-auto" ref={ref}>
-      {/* Header */}
       <motion.div
         initial={{ opacity: 0, y: 30 }}
         animate={inView ? { opacity: 1, y: 0 } : {}}
         transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
         className="mb-14"
       >
-        <p
-          className="text-xs font-bold tracking-widest uppercase mb-3"
-          style={{ color: '#0EA5E9' }}
-        >
+        <p className="text-xs font-bold tracking-widest uppercase mb-3" style={{ color: '#0EA5E9' }}>
           ¿Qué ofrecemos?
         </p>
         <h2
           className="font-black leading-none"
-          style={{
-            fontSize: 'clamp(36px, 5vw, 72px)',
-            color: '#F0F0F0',
-            letterSpacing: '-0.03em',
-          }}
+          style={{ fontSize: 'clamp(36px, 5vw, 72px)', color: '#F0F0F0', letterSpacing: '-0.03em' }}
         >
-          Todo lo que necesitas,
-          <br />
+          Todo lo que necesitas,<br />
           <span style={{ color: 'rgba(240,240,240,0.4)' }}>en un solo lugar.</span>
         </h2>
       </motion.div>
 
-      {/* Bento Grid — Unificado y totalmente interactivo */}
       <div className="grid grid-cols-12 gap-4">
-        {SERVICES.map((service, i) => (
-          <ServiceCard key={service.id} service={service} index={i} inView={inView} />
+        {services.map((service, i) => (
+          <ServiceCard key={service.id || i} service={service} index={i} inView={inView} />
         ))}
       </div>
     </section>

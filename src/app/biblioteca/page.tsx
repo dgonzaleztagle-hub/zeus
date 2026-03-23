@@ -1,41 +1,49 @@
-﻿'use client';
+'use client';
 
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { BentoGrid } from '@/components/premium/BentoGrid';
 import { AnimatedGradient } from '@/components/premium/AnimatedGradient';
 
-const ARTICLES = [
+const INITIAL_ARTICLES = [
   {
     title: 'La Economía Circular en 2026',
     description: 'Tendencias globales y cómo aplicarlas a la logística local.',
     link: '#',
-    image: '/prospectos/zeus/article1.png',
+    image_path: '/prospectos/zeus/article1.png',
     category: 'Innovación'
   },
   {
     title: 'Guía de Descarbonización para PyMEs',
     description: 'Pasos críticos para reducir tu huella operativa hoy mismo.',
     link: '#',
-    image: '/prospectos/zeus/article2.png',
+    image_path: '/prospectos/zeus/article2.png',
     category: 'Sostenibilidad'
-  },
-  {
-     title: "Casos de Éxito: Constructora RM",
-     description: "Cómo una empresa tradicional redujo un 30% sus residuos digitales.",
-     link: "#",
-     image: "/prospectos/zeus/case1.png",
-     category: "Casos"
-  },
-  {
-     title: "Tecnología y Medio Ambiente",
-     description: "El impacto invisible de los centros de datos en el clima.",
-     link: "#",
-     image: "/prospectos/zeus/tech.png",
-     category: "Educación"
   }
 ];
 
 export default function BibliotecaPage() {
+  const [articles, setArticles] = useState<any[]>(INITIAL_ARTICLES);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchArticles = async () => {
+      try {
+        const res = await fetch('/api/zeus/services');
+        const data = await res.json();
+        // Filtramos solo los de tipo biblioteca
+        const libArticles = data.services?.filter((s: any) => s.type === 'biblioteca') || [];
+        if (libArticles.length > 0) {
+          setArticles(libArticles);
+        }
+      } catch (err) {
+        console.error('Error fetching library articles:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchArticles();
+  }, []);
+
   return (
     <div className="relative pt-32 pb-24 min-h-screen overflow-hidden">
       <AnimatedGradient
@@ -69,9 +77,9 @@ export default function BibliotecaPage() {
 
         {/* Bento Articles Grid */}
         <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
-           {ARTICLES.map((art, i) => (
+           {articles.map((art, i) => (
              <motion.div
-               key={art.title}
+               key={art.id || art.title}
                initial={{ opacity: 0, y: 20 }}
                animate={{ opacity: 1, y: 0 }}
                transition={{ delay: i * 0.1, duration: 0.8 }}
@@ -79,7 +87,7 @@ export default function BibliotecaPage() {
              >
                 <div 
                   className="absolute inset-0 opacity-20 grayscale scale-100 group-hover:scale-105 transition-transform duration-1000"
-                  style={{ background: 'url(/prospectos/zeus/hero.png) center/cover' }} 
+                  style={{ backgroundImage: `url(${art.image_path || '/prospectos/zeus/hero.png'})`, backgroundSize: 'cover', backgroundPosition: 'center' }} 
                 />
                 <div 
                   className="absolute inset-0"
@@ -87,9 +95,9 @@ export default function BibliotecaPage() {
                 />
                 
                 <div className="relative z-10">
-                   <div className="text-[9px] font-black tracking-widest uppercase mb-3 inline-block px-2 py-1 rounded bg-white/5" style={{ color: '#A78BFA' }}>{art.category}</div>
+                   <div className="text-[9px] font-black tracking-widest uppercase mb-3 inline-block px-2 py-1 rounded bg-white/5" style={{ color: '#A78BFA' }}>{art.tag || 'Biblioteca'}</div>
                    <h3 className="text-2xl font-black mb-2 group-hover:text-[#A78BFA] transition-colors">{art.title}</h3>
-                   <p className="text-sm text-white/40 mb-6 max-w-md">{art.description}</p>
+                   <p className="text-sm text-white/40 mb-6 max-w-md line-clamp-2">{art.description}</p>
                    <div className="flex items-center gap-2 text-xs font-black">
                       Leer artículo <span className="translate-x-0 group-hover:translate-x-2 transition-transform">→</span>
                    </div>

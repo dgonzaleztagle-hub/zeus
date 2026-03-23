@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -6,16 +6,31 @@ import { AnimatedGradient } from '@/components/premium/AnimatedGradient';
 import { format, addMonths, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay, isToday, addDays } from 'date-fns';
 import { es } from 'date-fns/locale';
 
-const SERVICES = [
-  { id: 'asesoria', name: 'Asesoría Online (1h)', price: 29900, icon: '💡' },
-  { id: 'tecnico', name: 'Diagnóstico Técnico', price: 15000, icon: '🔧' },
-  { id: 'empresas', name: 'Consultoría Empresas', price: 95000, icon: '🏢' },
-];
-
 export default function AgendaPage() {
+  const [services, setServices] = useState<any[]>([]);
   const [step, setStep] = useState(1);
-  const [selectedService, setSelectedService] = useState(SERVICES[0]);
+  const [selectedService, setSelectedService] = useState<any>(null);
   const [currentMonth, setCurrentMonth] = useState(new Date());
+  
+  // Cargar servicios dinámicos
+  useEffect(() => {
+    const loadServices = async () => {
+      try {
+        const res = await fetch('/api/zeus/services');
+        const data = await res.json();
+        // FILTRO CRÍTICO: Solo tipos de agendamiento real
+        const agendaServices = (data.services || []).filter((s: any) => 
+          ['asesoria', 'tecnico', 'empresas'].includes(s.type)
+        );
+        setServices(agendaServices);
+        if (agendaServices.length > 0) setSelectedService(agendaServices[0]);
+      } catch (error) {
+        console.error('Error loading dynamic services:', error);
+      }
+    };
+    loadServices();
+  }, []);
+
   const [selectedDate, setSelectedDate] = useState<Date>(addDays(new Date(), 1));
   const [availableSlots, setAvailableSlots] = useState<string[]>([]);
   const [selectedSlot, setSelectedSlot] = useState<string | null>(null);
@@ -122,23 +137,33 @@ export default function AgendaPage() {
             {step === 1 && (
               <motion.div key="step1" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="flex-1">
                 <h3 className="text-xl font-bold mb-8">1. Selecciona el servicio</h3>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  {SERVICES.map(s => (
-                    <button key={s.id} onClick={() => setSelectedService(s)}
-                      className="p-6 rounded-2xl border text-left transition-all group"
-                      style={{ 
-                        background: selectedService.id === s.id ? 'rgba(14,165,233,0.1)' : 'transparent',
-                        borderColor: selectedService.id === s.id ? '#0EA5E9' : 'rgba(255,255,255,0.1)' 
-                      }}>
-                      <div className="text-3xl mb-4 group-hover:scale-110 transition-transform">{s.icon}</div>
-                      <div className="font-bold text-sm mb-1">{s.name}</div>
-                      <div className="text-xs font-black" style={{ color: '#0EA5E9' }}>${s.price.toLocaleString('es-CL')}</div>
-                    </button>
-                  ))}
-                </div>
+                {services.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-20 opacity-20">
+                    <div className="w-8 h-8 border-2 border-[#0EA5E9] border-t-transparent animate-spin rounded-full mb-4" />
+                    <p className="text-[10px] font-black uppercase tracking-widest">Sincronizando Servicios...</p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    {services.map(s => (
+                      <button key={s.id} onClick={() => setSelectedService(s)}
+                        className="p-6 rounded-2xl border text-left transition-all group"
+                        style={{ 
+                          background: selectedService?.id === s.id ? 'rgba(14,165,233,0.1)' : 'transparent',
+                          borderColor: selectedService?.id === s.id ? '#0EA5E9' : 'rgba(255,255,255,0.1)' 
+                        }}>
+                        <div className="text-3xl mb-4 group-hover:scale-110 transition-transform">{s.icon || '💡'}</div>
+                        <div className="font-bold text-sm mb-1">{s.title || s.name}</div>
+                        <div className="text-xs font-black" style={{ color: '#0EA5E9' }}>${(s.price || 0).toLocaleString('es-CL')}</div>
+                      </button>
+                    ))}
+                  </div>
+                )}
                 <div className="mt-auto pt-10 flex justify-end">
-                   <button onClick={nextStep} className="px-8 py-3 rounded-xl font-bold transition-all hover:scale-105 active:scale-95" 
-                           style={{ background: '#0EA5E9', color: '#0A0A0F' }}>Continuar →</button>
+                   <button 
+                     onClick={nextStep} 
+                     disabled={!selectedService}
+                     className="px-8 py-3 rounded-xl font-bold transition-all hover:scale-105 active:scale-95 disabled:opacity-20 translate-y-4" 
+                     style={{ background: '#0EA5E9', color: '#0A0A0F' }}>Continuar →</button>
                 </div>
               </motion.div>
             )}
