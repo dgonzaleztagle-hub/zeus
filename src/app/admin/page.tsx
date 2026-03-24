@@ -36,7 +36,9 @@ export default function ZeusAdminPage() {
     zeusSupabaseAnonKey
   );
   
-  const [activeTab, setActiveTab] = useState<'agenda' | 'store' | 'services'>('services');
+  const [activeTab, setActiveTab] = useState<'agenda' | 'store' | 'services' | 'pagos'>('services');
+  const [payments, setPayments] = useState<any[]>([]);
+  const [selectedPayment, setSelectedPayment] = useState<any>(null);
   const [bookings, setBookings] = useState<any[]>([]);
   const [products, setProducts] = useState<any[]>([]);
   const [services, setServices] = useState<any[]>([]);
@@ -123,6 +125,15 @@ export default function ZeusAdminPage() {
         const data = await res.json();
         if (data.error) throw new Error(data.error);
         setServices(data.services || []);
+      } else if (activeTab === 'pagos') {
+        const { data, error } = await supabase
+          .from('zeus_bookings')
+          .select('*')
+          .eq('payment_status', 'paid')
+          .not('client_name', 'eq', 'ADMIN_BLOCK')
+          .order('created_at', { ascending: false });
+        if (error) throw error;
+        setPayments(data || []);
       }
     } catch (err: any) {
       addToast(err.message, 'error');
@@ -333,11 +344,12 @@ export default function ZeusAdminPage() {
 
       <div className="max-w-6xl mx-auto">
         <div className="mb-8 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-          <div className="flex gap-4 text-[10px] items-center">
+          <div className="flex gap-4 text-[10px] items-center flex-wrap">
             {[
               { id: 'agenda', label: 'Gestión Agenda' },
               { id: 'store', label: 'Catálogo Digital' },
-              { id: 'services', label: 'Servicios & Biblioteca' }
+              { id: 'services', label: 'Servicios & Biblioteca' },
+              { id: 'pagos', label: '💰 Control de Pagos' },
             ].map(t => (
               <button key={t.id} onClick={() => setActiveTab(t.id as any)}
                 className={`uppercase tracking-widest font-black transition-all pb-1 border-b-2 ${activeTab === t.id ? 'text-[#0EA5E9] border-[#0EA5E9]' : 'text-white/30 border-transparent hover:text-white/60'}`}
@@ -586,6 +598,105 @@ export default function ZeusAdminPage() {
             </div>
           </div>
         )}
+
+        {activeTab === 'pagos' && (() => {
+          const now = new Date();
+          const thisMonth = payments.filter(p => {
+            const d = new Date(p.created_at);
+            return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+          });
+          const totalMes = thisMonth.reduce((s, p) => s + (Number(p.amount) || 0), 0);
+          const totalHistorico = payments.reduce((s, p) => s + (Number(p.amount) || 0), 0);
+          const promedio = payments.length ? Math.round(totalHistorico / payments.length) : 0;
+
+          return (
+            <div className="space-y-8">
+              {/* Modal de detalle */}
+              {selectedPayment && (
+                <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-6" onClick={() => setSelectedPayment(null)}>
+                  <div className="bg-[#111118] border border-white/10 rounded-3xl p-8 max-w-md w-full shadow-2xl" onClick={e => e.stopPropagation()}>
+                    <div className="flex justify-between items-center mb-6">
+                      <h3 className="font-black text-lg">Detalle del Pago</h3>
+                      <button onClick={() => setSelectedPayment(null)} className="text-white/30 hover:text-white text-xl">✕</button>
+                    </div>
+                    <div className="space-y-4">
+                      {[
+                        { label: 'Cliente', value: selectedPayment.client_name },
+                        { label: 'Email', value: selectedPayment.client_email },
+                        { label: 'WhatsApp', value: selectedPayment.client_whatsapp || '—' },
+                        { label: 'Servicio', value: selectedPayment.service_name },
+                        { label: 'Fecha Reserva', value: `${selectedPayment.booking_date} a las ${selectedPayment.booking_slot}` },
+                        { label: 'Monto', value: `$${(Number(selectedPayment.amount) || 0).toLocaleString('es-CL')}` },
+                        { label: 'ID Pago MP', value: selectedPayment.payment_id || '—' },
+                        { label: 'Fecha Transacción', value: new Date(selectedPayment.created_at).toLocaleString('es-CL') },
+                      ].map(({ label, value }) => (
+                        <div key={label} className="flex justify-between items-start gap-4 py-2 border-b border-white/5">
+                          <span className="text-[10px] uppercase tracking-widest text-white/30 font-black">{label}</span>
+                          <span className="text-sm font-bold text-right">{value}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* KPIs del mes */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {[
+                  { label: 'Ingresos del Mes', value: `$${totalMes.toLocaleString('es-CL')}`, icon: '💰', color: '#0EA5E9' },
+                  { label: 'Pagos del Mes', value: `${thisMonth.length} reservas`, icon: '📋', color: '#22C55E' },
+                  { label: 'Ticket Promedio', value: `$${promedio.toLocaleString('es-CL')}`, icon: '📊', color: '#A78BFA' },
+                ].map(kpi => (
+                  <div key={kpi.label} className="bg-[#111118] border border-white/5 rounded-2xl p-6">
+                    <div className="text-2xl mb-3">{kpi.icon}</div>
+                    <div className="text-2xl font-black mb-1" style={{ color: kpi.color }}>{kpi.value}</div>
+                    <div className="text-[10px] uppercase tracking-widest text-white/30 font-bold">{kpi.label}</div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Historial */}
+              <div className="bg-[#111118] border border-white/5 rounded-2xl overflow-hidden">
+                <div className="px-6 py-4 border-b border-white/5">
+                  <h3 className="text-sm font-black uppercase tracking-widest text-[#0EA5E9]">Historial de Transacciones</h3>
+                  <p className="text-[10px] text-white/30 mt-1">Clic en una fila para ver el detalle completo</p>
+                </div>
+                {payments.length === 0 ? (
+                  <div className="p-12 text-center text-white/20 text-sm">Aún no hay pagos confirmados.</div>
+                ) : (
+                  <table className="w-full">
+                    <thead>
+                      <tr className="border-b border-white/5">
+                        {['Cliente', 'Servicio', 'Fecha Reserva', 'Monto', 'ID MP'].map(h => (
+                          <th key={h} className="px-6 py-3 text-left text-[9px] uppercase tracking-widest text-white/20 font-black">{h}</th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {payments.map(p => (
+                        <tr key={p.id} onClick={() => setSelectedPayment(p)}
+                          className="border-b border-white/5 hover:bg-white/[0.02] cursor-pointer transition-colors group">
+                          <td className="px-6 py-4">
+                            <div className="font-bold text-sm">{p.client_name}</div>
+                            <div className="text-[10px] text-white/30">{p.client_email}</div>
+                          </td>
+                          <td className="px-6 py-4 text-xs text-white/60">{p.service_name}</td>
+                          <td className="px-6 py-4 text-xs text-white/60">{p.booking_date} {p.booking_slot}</td>
+                          <td className="px-6 py-4">
+                            <span className="font-black text-sm" style={{ color: '#22C55E' }}>
+                              ${(Number(p.amount) || 0).toLocaleString('es-CL')}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 text-[10px] text-white/20 font-mono">{p.payment_id ? p.payment_id.slice(0, 12) + '...' : '—'}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
+              </div>
+            </div>
+          );
+        })()}
       </div>
     </div>
   );
