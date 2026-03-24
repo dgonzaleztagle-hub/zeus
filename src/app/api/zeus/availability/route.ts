@@ -45,12 +45,13 @@ export async function GET(request: Request) {
       return NextResponse.json({ slots: [] });
     }
 
-    // 4. Obtener reservas ya confirmadas/pagadas
+    // 4. Obtener reservas activas: paid siempre, pending solo si son recientes (< 30 min)
+    const thirtyMinAgo = new Date(Date.now() - 30 * 60 * 1000).toISOString();
     const { data: bookings } = await supabase
       .from('zeus_bookings')
       .select('booking_slot')
       .eq('booking_date', date)
-      .in('payment_status', ['paid', 'pending']); // Bloqueamos también los que están en proceso de pago
+      .or(`payment_status.eq.paid,and(payment_status.eq.pending,created_at.gt.${thirtyMinAgo})`);
 
     const bookedSlots = bookings?.map(b => b.booking_slot) || [];
 

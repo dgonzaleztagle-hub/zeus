@@ -103,7 +103,7 @@ export default function ZeusAdminPage() {
       if (token) headers['Authorization'] = `Bearer ${token}`;
 
       if (activeTab === 'agenda') {
-        const { data, error } = await supabase.from('zeus_bookings').select('*').order('booking_date', { ascending: true });
+        const { data, error } = await supabase.from('zeus_bookings').select('*').eq('payment_status', 'paid').order('booking_date', { ascending: true });
         if (error) {
           if (isMissingTableError(error)) {
             setBookings([]);
