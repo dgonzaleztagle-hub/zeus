@@ -31,6 +31,7 @@ export async function POST(req: NextRequest) {
       fileSizeLimit: 52428800,
       allowedMimeTypes: [
         'application/pdf',
+        'application/epub+zip',           // ebook EPUB
         'application/zip',
         'image/png',
         'image/jpeg',
@@ -41,7 +42,9 @@ export async function POST(req: NextRequest) {
         'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
         'application/vnd.ms-powerpoint',
         'application/vnd.openxmlformats-officedocument.presentationml.presentation',
-        'text/plain'
+        'text/plain',
+        'audio/mpeg',                      // MP3 audiolibros
+        'video/mp4',                       // videos formativos
       ]
     });
 
