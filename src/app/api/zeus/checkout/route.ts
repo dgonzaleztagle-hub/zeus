@@ -35,6 +35,20 @@ export async function POST(request: Request) {
       // Es una reserva de agenda
       const { date, slot, client_whatsapp } = metadata || {};
       
+      // ✅ VERIFICAR DISPONIBILIDAD ANTES DE INSERTAR
+      const { data: existingBooking } = await supabase
+        .from('zeus_bookings')
+        .select('id')
+        .eq('booking_date', date)
+        .eq('booking_slot', slot)
+        .maybeSingle();
+      
+      if (existingBooking) {
+        return NextResponse.json({ 
+          error: 'Este horario acaba de ser reservado por otro usuario. Por favor elige otro horario disponible.' 
+        }, { status: 409 });
+      }
+
       // Crear la reserva en estado pendiente
       const { data: booking, error: bError } = await supabase
         .from('zeus_bookings')
