@@ -62,36 +62,41 @@ export default function AgendaPage() {
   const prevStep = () => setStep(s => s - 1);
 
   const handleCheckout = async () => {
+    if (!formData.name || !formData.email || !selectedSlot || !selectedService) {
+      alert('Por favor completa todos los campos');
+      return;
+    }
     setIsSubmitting(true);
     try {
-      // Simula el tiempo de aprobación de pasarela para pruebas
-      await new Promise(resolve => setTimeout(resolve, 1200));
-
-      const res = await fetch('/api/zeus/book', {
+      const res = await fetch('/api/zeus/checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          service_id: selectedService.id,
-          service_name: selectedService.name,
+          type: 'service',
+          item_id: selectedService.id,
+          item_name: selectedService.title || selectedService.name,
           amount: selectedService.price,
           client_name: formData.name,
           client_email: formData.email,
-          client_whatsapp: formData.whatsapp,
-          date: format(selectedDate, 'yyyy-MM-dd'),
-          slot: selectedSlot,
-          simulate_payment: true
+          metadata: {
+            date: format(selectedDate, 'yyyy-MM-dd'),
+            slot: selectedSlot,
+            client_whatsapp: formData.whatsapp,
+          }
         })
       });
 
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.error || 'Error al crear la reserva');
-      }
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Error al iniciar el pago');
 
-      // Redirección a éxito en modo simulación
-      window.location.href = "/checkout/success?mode=simulated";
+      // Redirigir al checkout de Mercado Pago
+      if (data.payment_url) {
+        window.location.href = data.payment_url;
+      } else {
+        throw new Error('No se recibió URL de pago');
+      }
     } catch (error: any) {
-      alert(error.message);
+      alert('Error: ' + error.message);
     } finally {
       setIsSubmitting(false);
     }
