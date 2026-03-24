@@ -120,7 +120,14 @@ export async function POST(request: Request) {
     });
 
   } catch (error: any) {
-    console.error('Checkout error:', error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    console.error('Checkout error full:', JSON.stringify(error));
+    const msg = error?.message || error?.error || JSON.stringify(error);
+    // Detectar si es RLS/Supabase o MP
+    if (msg.toLowerCase().includes('policy') || msg.toLowerCase().includes('rls') || msg.toLowerCase().includes('unauthorized')) {
+      return NextResponse.json({ 
+        error: `Error de permisos en base de datos: ${msg}. Revisa RLS en zeus_bookings.` 
+      }, { status: 403 });
+    }
+    return NextResponse.json({ error: msg }, { status: 500 });
   }
 }
