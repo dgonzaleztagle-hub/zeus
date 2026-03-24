@@ -3,8 +3,8 @@ import { NextResponse } from 'next/server';
 import { MercadoPagoConfig, Preference } from 'mercadopago';
 
 const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
+  process.env.NEXT_PUBLIC_ZEUS_SUPABASE_URL!,
+  process.env.ZEUS_SUPABASE_SERVICE_ROLE_KEY!
 );
 
 const client = new MercadoPagoConfig({ 

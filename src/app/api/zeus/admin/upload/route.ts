@@ -1,4 +1,4 @@
-﻿
+
 import { createClient } from '@supabase/supabase-js';
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
@@ -20,8 +20,8 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Archivo muy grande (máx 50MB)' }, { status: 400 });
     }
 
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-    const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+    const supabaseUrl = process.env.NEXT_PUBLIC_ZEUS_SUPABASE_URL!;
+    const supabaseServiceKey = process.env.ZEUS_SUPABASE_SERVICE_ROLE_KEY!;
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
