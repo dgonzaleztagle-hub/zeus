@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { AnimatedGradient } from '@/components/premium/AnimatedGradient';
 import * as ConfettiModule from 'canvas-confetti';
+import ZeleriPayModal from '@/components/ZeleriPayModal';
 
 const confetti = (ConfettiModule as any).default || ConfettiModule;
 
@@ -12,6 +13,9 @@ export default function TiendaPage() {
   const [loading, setLoading] = useState(true);
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
   const [simulatingPaymentId, setSimulatingPaymentId] = useState<string | null>(null);
+  const [payModal, setPayModal] = useState<{ open: boolean; product: any | null }>({
+    open: false, product: null,
+  });
 
   useEffect(() => {
     fetchProducts();
@@ -29,45 +33,12 @@ export default function TiendaPage() {
     }
   };
 
-  const handleBuy = async (product: any) => {
+  const handleBuy = (product: any) => {
     if (product.is_free) {
       handleDownload(product);
       return;
     }
-
-    // Para productos de pago, necesitamos el email para el envío/acceso
-    const email = window.prompt("Por favor, ingresa tu correo electrónico para enviarte el acceso a la descarga:", "");
-    if (!email || !email.includes('@')) {
-      alert("Se requiere un correo electrónico válido para procesar la compra.");
-      return;
-    }
-
-    setSimulatingPaymentId(product.id);
-    try {
-      const res = await fetch('/api/zeus/checkout', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          type: 'product',
-          item_id: product.id,
-          item_name: product.name,
-          amount: product.price,
-          client_name: 'Cliente Zeus',
-          client_email: email,
-        })
-      });
-
-      const data = await res.json();
-      if (data.payment_url) {
-        window.location.href = data.payment_url;
-      } else {
-        throw new Error(data.error || 'No se pudo generar el link de pago');
-      }
-    } catch (error: any) {
-      alert(error.message || 'Error al iniciar el pago. Reintenta por favor.');
-    } finally {
-      setSimulatingPaymentId(null);
-    }
+    setPayModal({ open: true, product });
   };
 
   const getFileNameFromProduct = (product: any) => {
@@ -202,16 +173,12 @@ export default function TiendaPage() {
                   
                   <div className="flex flex-col gap-4 mt-auto relative z-10">
                      <div className="text-2xl font-black leading-none">${prod.price.toLocaleString('es-CL')}</div>
-                     <button 
+                     <button
                        onClick={() => handleBuy(prod)}
-                       disabled={simulatingPaymentId === prod.id || downloadingId === prod.id}
+                       disabled={downloadingId === prod.id}
                        className="w-full h-14 rounded-xl flex items-center justify-center font-bold transition-all duration-300 bg-white/5 border border-white/10 hover:bg-[#0EA5E9] hover:text-[#0A0A0F]"
                      >
-                       {simulatingPaymentId === prod.id
-                         ? 'Simulando pago...'
-                         : downloadingId === prod.id
-                           ? 'Generando descarga...'
-                           : 'Comprar (Simulado)'}
+                       {downloadingId === prod.id ? 'Generando descarga...' : 'Comprar →'}
                      </button>
                   </div>
                 </motion.div>
@@ -265,6 +232,24 @@ export default function TiendaPage() {
            <span className="font-black tracking-tighter text-xl uppercase">Powered by HojaCero Store Engine</span>
         </div>
       </div>
+
+      {/* Modal de pago inline con Zeleri */}
+      {payModal.product && (
+        <ZeleriPayModal
+          isOpen={payModal.open}
+          onClose={() => setPayModal({ open: false, product: null })}
+          onSuccess={(downloadToken) => {
+            setPayModal({ open: false, product: null });
+            if (downloadToken) {
+              window.location.href = `/api/zeus/download?token=${downloadToken}`;
+            }
+          }}
+          type="product"
+          itemId={payModal.product.id}
+          itemName={payModal.product.name}
+          amount={payModal.product.price}
+        />
+      )}
     </div>
   );
 }

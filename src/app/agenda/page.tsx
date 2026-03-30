@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { AnimatedGradient } from '@/components/premium/AnimatedGradient';
 import { format, addMonths, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay, isToday, addDays } from 'date-fns';
 import { es } from 'date-fns/locale';
+import ZeleriPayModal from '@/components/ZeleriPayModal';
 
 export default function AgendaPage() {
   const [services, setServices] = useState<any[]>([]);
@@ -37,6 +38,7 @@ export default function AgendaPage() {
   const [isLoadingSlots, setIsLoadingSlots] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({ name: '', email: '', whatsapp: '' });
+  const [payModalOpen, setPayModalOpen] = useState(false);
 
   const fetchAvailability = useCallback(async (date: Date) => {
     setIsLoadingSlots(true);
@@ -61,45 +63,12 @@ export default function AgendaPage() {
   const nextStep = () => setStep(s => s + 1);
   const prevStep = () => setStep(s => s - 1);
 
-  const handleCheckout = async () => {
+  const handleCheckout = () => {
     if (!formData.name || !formData.email || !selectedSlot || !selectedService) {
       alert('Por favor completa todos los campos');
       return;
     }
-    setIsSubmitting(true);
-    try {
-      const res = await fetch('/api/zeus/checkout', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          type: 'service',
-          item_id: selectedService.id,
-          item_name: selectedService.title || selectedService.name,
-          amount: selectedService.price,
-          client_name: formData.name,
-          client_email: formData.email,
-          metadata: {
-            date: format(selectedDate, 'yyyy-MM-dd'),
-            slot: selectedSlot,
-            client_whatsapp: formData.whatsapp,
-          }
-        })
-      });
-
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Error al iniciar el pago');
-
-      // Redirigir al checkout de Mercado Pago
-      if (data.payment_url) {
-        window.location.href = data.payment_url;
-      } else {
-        throw new Error('No se recibió URL de pago');
-      }
-    } catch (error: any) {
-      alert('Error: ' + error.message);
-    } finally {
-      setIsSubmitting(false);
-    }
+    setPayModalOpen(true);
   };
 
   // Generar días del calendario
@@ -277,9 +246,9 @@ export default function AgendaPage() {
                 <div className="mt-8 pt-8 border-t border-white/5 flex justify-between items-center">
                    <button onClick={prevStep} className="text-sm font-bold opacity-50 hover:opacity-100 transition-opacity">← Atrás</button>
                    <button onClick={handleCheckout} disabled={!formData.name || !formData.email || isSubmitting}
-                           className="px-10 py-4 rounded-xl font-bold transition-all shadow-lg active:scale-95 disabled:grayscale" 
+                           className="px-10 py-4 rounded-xl font-bold transition-all shadow-lg active:scale-95 disabled:grayscale"
                            style={{ background: 'linear-gradient(135deg, #0EA5E9, #00D4FF)', color: '#0A0A0F', boxShadow: '0 0 30px rgba(14,165,233,0.3)' }}>
-                     Pagar (Simulado) →
+                     Pagar →
                    </button>
                 </div>
               </motion.div>
@@ -290,6 +259,28 @@ export default function AgendaPage() {
           Powered by HojaCero Agenda Engine
         </p>
       </div>
+
+      {/* Modal de pago inline con Zeleri */}
+      {selectedService && (
+        <ZeleriPayModal
+          isOpen={payModalOpen}
+          onClose={() => setPayModalOpen(false)}
+          onSuccess={() => {
+            setPayModalOpen(false);
+            // Redirigir a success mostrando la reserva confirmada
+            window.location.href = '/checkout/success?type=service&status=approved';
+          }}
+          type="service"
+          itemId={selectedService.id}
+          itemName={selectedService.title || selectedService.name}
+          amount={selectedService.price}
+          date={format(selectedDate, 'yyyy-MM-dd')}
+          slot={selectedSlot || ''}
+          prefillName={formData.name}
+          prefillEmail={formData.email}
+          prefillPhone={formData.whatsapp}
+        />
+      )}
     </div>
   );
 }
