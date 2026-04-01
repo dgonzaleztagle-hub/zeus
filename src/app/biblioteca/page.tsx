@@ -8,15 +8,15 @@ const INITIAL_ARTICLES = [
   {
     title: 'La Economía Circular en 2026',
     description: 'Tendencias globales y cómo aplicarlas a la logística local.',
-    link: '#',
-    image_path: '/prospectos/zeus/article1.png',
+    link: '/agenda',
+    image_path: '/prospectos/zeus/biblioteca.png',
     category: 'Innovación'
   },
   {
     title: 'Guía de Descarbonización para PyMEs',
     description: 'Pasos críticos para reducir tu huella operativa hoy mismo.',
-    link: '#',
-    image_path: '/prospectos/zeus/article2.png',
+    link: '/asesorias',
+    image_path: '/prospectos/zeus/hero.png',
     category: 'Sostenibilidad'
   }
 ];
@@ -31,7 +31,12 @@ export default function BibliotecaPage() {
         const res = await fetch('/api/zeus/services');
         const data = await res.json();
         // Filtramos solo los de tipo biblioteca
-        const libArticles = data.services?.filter((s: any) => s.type === 'biblioteca') || [];
+        const libArticles = (data.services?.filter((s: any) => s.type === 'biblioteca') || []).map((article: any) => ({
+          ...article,
+          link: article.href || '/biblioteca',
+          image_path: article.image_path || '/prospectos/zeus/biblioteca.png',
+          category: article.category || article.tag || 'Biblioteca',
+        }));
         if (libArticles.length > 0) {
           setArticles(libArticles);
         }
@@ -95,12 +100,12 @@ export default function BibliotecaPage() {
                 />
                 
                 <div className="relative z-10">
-                   <div className="text-[9px] font-black tracking-widest uppercase mb-3 inline-block px-2 py-1 rounded bg-white/5" style={{ color: '#A78BFA' }}>{art.tag || 'Biblioteca'}</div>
+                   <div className="text-[9px] font-black tracking-widest uppercase mb-3 inline-block px-2 py-1 rounded bg-white/5" style={{ color: '#A78BFA' }}>{art.category || art.tag || 'Biblioteca'}</div>
                    <h3 className="text-2xl font-black mb-2 group-hover:text-[#A78BFA] transition-colors">{art.title}</h3>
                    <p className="text-sm text-white/40 mb-6 max-w-md line-clamp-2">{art.description}</p>
-                   <div className="flex items-center gap-2 text-xs font-black">
+                   <a href={art.link || '/biblioteca'} className="flex items-center gap-2 text-xs font-black">
                       Leer artículo <span className="translate-x-0 group-hover:translate-x-2 transition-transform">→</span>
-                   </div>
+                   </a>
                 </div>
              </motion.div>
            ))}

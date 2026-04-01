@@ -67,12 +67,17 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     const { id, ...serviceData } = body;
+    const normalizedServiceData = {
+      ...serviceData,
+      active: serviceData.active ?? true,
+      status: serviceData.status ?? 'active',
+    };
 
     let result;
     if (id) {
       const { data, error } = await supabase
         .from('zeus_services')
-        .update(serviceData)
+        .update(normalizedServiceData)
         .eq('id', id)
         .select()
         .single();
@@ -81,7 +86,7 @@ export async function POST(request: NextRequest) {
     } else {
       const { data, error } = await supabase
         .from('zeus_services')
-        .insert(serviceData)
+        .insert(normalizedServiceData)
         .select()
         .single();
       if (error) throw error;
@@ -106,7 +111,7 @@ export async function DELETE(request: NextRequest) {
 
     const { error } = await supabase
       .from('zeus_services')
-      .update({ active: false })
+      .update({ active: false, status: 'inactive' })
       .eq('id', id);
 
     if (error) throw error;
