@@ -193,6 +193,31 @@ export default function ZeusAdminPage() {
     return name.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/ñ/g, "n").replace(/\s+/g, "-").replace(/[^a-z0-9.-]/g, "").replace(/-+/g, "-");
   };
 
+  const uploadViaSignedUrl = async (file: File, path: string) => {
+    const signRes = await fetch('/api/zeus/admin/upload-url', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ path, bucket: 'zeus-assets' })
+    });
+
+    const signResult = await signRes.json();
+    if (!signRes.ok) {
+      throw new Error(signResult.error || 'No se pudo preparar la subida');
+    }
+
+    const contentType = file.type || 'application/octet-stream';
+    const { error } = await supabase.storage
+      .from('zeus-assets')
+      .uploadToSignedUrl(path, signResult.token, file, {
+        upsert: true,
+        contentType
+      });
+
+    if (error) {
+      throw new Error(error.message || 'No se pudo subir el archivo a storage');
+    }
+  };
+
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -201,12 +226,7 @@ export default function ZeusAdminPage() {
       const cleanName = normalizeFileName(file.name);
       const fileName = `${Date.now()}-${cleanName}`;
       const filePath = `uploads/${fileName}`;
-      const formData = new FormData();
-      formData.append('file', file);
-      formData.append('path', filePath);
-      const res = await fetch('/api/zeus/admin/upload', { method: 'POST', body: formData });
-      const result = await res.json();
-      if (!res.ok) throw new Error(result.error);
+      await uploadViaSignedUrl(file, filePath);
       setNewProduct({ ...newProduct, file_path: filePath });
       addToast('Archivo subido', 'success');
     } catch (error: any) {
@@ -224,14 +244,9 @@ export default function ZeusAdminPage() {
       const cleanName = normalizeFileName(file.name);
       const fileName = `cover-${Date.now()}-${cleanName}`;
       const filePath = `covers/${fileName}`;
-      const formData = new FormData();
-      formData.append('file', file);
-      formData.append('path', filePath);
-      const res = await fetch('/api/zeus/admin/upload', { method: 'POST', body: formData });
-      const result = await res.json();
-      if (!res.ok) throw new Error(result.error);
+      await uploadViaSignedUrl(file, filePath);
       setNewProduct({ ...newProduct, image_url: filePath });
-      setCoverPreviewUrl(result.preview_url || '');
+      setCoverPreviewUrl(URL.createObjectURL(file));
       addToast('Portada subida', 'success');
     } catch (error: any) {
       addToast('Error: ' + error.message, 'error');
