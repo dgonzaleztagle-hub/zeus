@@ -86,7 +86,7 @@ export async function GET() {
     if (error) throw error;
 
     const services = (data || [])
-      .filter((service: any) => service?.status !== 'inactive')
+      .filter((service: any) => service?.status !== 'inactive' && service?.active !== false)
       .map(normalizePublicService);
 
     return NextResponse.json({ services });
