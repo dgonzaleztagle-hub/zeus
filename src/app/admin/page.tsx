@@ -590,9 +590,48 @@ export default function ZeusAdminPage() {
                         <div className="flex flex-col justify-end"><label className="flex items-center gap-2 cursor-pointer p-4 bg-white/5 rounded-xl border border-white/10"><input type="checkbox" checked={newProduct.is_free} onChange={e => setNewProduct({...newProduct, is_free: e.target.checked})} /><span className="text-[9px] font-black uppercase text-white/60">Gratis</span></label></div>
                      </div>
                      <div className="space-y-4">
-                        <div><label className="text-[9px] uppercase text-white/30 font-black mb-2 block">Subir Archivo</label><input type="file" onChange={handleFileUpload} className="text-[10px] text-white/20" /></div>
+                        <div>
+                           <label className="text-[9px] uppercase text-white/30 font-black mb-2 block">Descripción</label>
+                           <textarea
+                              value={newProduct.description}
+                              onChange={e => setNewProduct({ ...newProduct, description: e.target.value })}
+                              className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-4 text-xs outline-none focus:border-[#0EA5E9] min-h-[90px]"
+                              placeholder="Qué incluye este producto digital, formato, nivel, etc."
+                           />
+                        </div>
+                        <div className="grid grid-cols-1 gap-4">
+                           <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+                              <div className="flex items-center justify-between gap-3 mb-3">
+                                 <label className="text-[9px] uppercase text-white/30 font-black block">Archivo Digital</label>
+                                 {newProduct.file_path && <span className="text-[9px] text-[#0EA5E9] font-black uppercase">Listo</span>}
+                              </div>
+                              <input type="file" onChange={handleFileUpload} className="text-[10px] text-white/40 w-full" />
+                              <div className="mt-2 text-[10px] text-white/30 break-all">
+                                 {isUploading ? 'Subiendo archivo...' : (newProduct.file_path || 'Aún no se ha subido ningún archivo')}
+                              </div>
+                           </div>
+
+                           <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+                              <div className="flex items-center justify-between gap-3 mb-3">
+                                 <label className="text-[9px] uppercase text-white/30 font-black block">Portada</label>
+                                 {newProduct.image_url && <span className="text-[9px] text-[#0EA5E9] font-black uppercase">Lista</span>}
+                              </div>
+                              <input type="file" accept="image/*" onChange={handleCoverUpload} className="text-[10px] text-white/40 w-full" />
+                              <div className="mt-2 text-[10px] text-white/30 break-all">
+                                 {isUploadingCover ? 'Subiendo portada...' : (newProduct.image_url || 'Puedes publicar sin portada, pero la tienda se verá mejor con una.')}
+                              </div>
+                              {coverPreviewUrl && (
+                                 <div className="mt-4 rounded-2xl overflow-hidden border border-white/10 bg-black/30 w-full max-w-[220px]">
+                                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                                    <img src={coverPreviewUrl} alt="Preview portada" className="w-full h-40 object-cover" />
+                                 </div>
+                              )}
+                           </div>
+                        </div>
                      </div>
-                     <button onClick={handleSaveProduct} disabled={isSavingProduct || !newProduct.name} className="w-full py-5 rounded-2xl text-[10px] font-black uppercase tracking-widest bg-[#0EA5E9] text-[#0A0A0F]">Publicar →</button>
+                     <button onClick={handleSaveProduct} disabled={isSavingProduct || !newProduct.name} className="w-full py-5 rounded-2xl text-[10px] font-black uppercase tracking-widest bg-[#0EA5E9] text-[#0A0A0F] disabled:opacity-40">
+                        {isSavingProduct ? 'Publicando...' : 'Publicar →'}
+                     </button>
                   </div>
                </div>
             </div>
