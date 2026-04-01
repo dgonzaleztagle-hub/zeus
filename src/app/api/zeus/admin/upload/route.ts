@@ -51,6 +51,12 @@ const inferMimeType = (fileName: string) => {
   return mimeMap[extension] || 'application/octet-stream';
 };
 
+const BUCKET_CONFIG = {
+  public: false,
+  fileSizeLimit: 52428800,
+  allowedMimeTypes: ALLOWED_MIME_TYPES
+};
+
 export async function POST(req: NextRequest) {
   try {
     const formData = await req.formData();
@@ -74,14 +80,20 @@ export async function POST(req: NextRequest) {
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
     const contentType = file.type || inferMimeType(file.name);
 
-    // Intentamos mantener el bucket alineado, pero si esto falla no bloqueamos el upload.
-    const { error: bucketUpdateError } = await supabase.storage.updateBucket(bucket, {
-      public: false,
-      fileSizeLimit: 52428800,
-      allowedMimeTypes: ALLOWED_MIME_TYPES
-    });
-    if (bucketUpdateError) {
-      console.warn('Bucket update warning:', bucketUpdateError.message);
+    // Blindaje: si el bucket no existe en producción lo recreamos antes del upload.
+    const { data: existingBucket, error: getBucketError } = await supabase.storage.getBucket(bucket);
+
+    if (getBucketError) {
+      const { error: createBucketError } = await supabase.storage.createBucket(bucket, BUCKET_CONFIG);
+      if (createBucketError && !String(createBucketError.message || '').toLowerCase().includes('already exists')) {
+        console.error('Bucket create error:', createBucketError);
+        return NextResponse.json({ error: createBucketError.message || 'No se pudo crear el bucket de storage' }, { status: 500 });
+      }
+    } else if (existingBucket) {
+      const { error: bucketUpdateError } = await supabase.storage.updateBucket(bucket, BUCKET_CONFIG);
+      if (bucketUpdateError) {
+        console.warn('Bucket update warning:', bucketUpdateError.message);
+      }
     }
 
     const buffer = await file.arrayBuffer();
