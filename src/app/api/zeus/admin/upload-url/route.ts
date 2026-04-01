@@ -26,7 +26,7 @@ const ALLOWED_MIME_TYPES = [
 
 const BUCKET_CONFIG = {
   public: false,
-  fileSizeLimit: 52428800,
+  fileSizeLimit: 524288000,
   allowedMimeTypes: ALLOWED_MIME_TYPES
 };
 

@@ -53,7 +53,7 @@ const inferMimeType = (fileName: string) => {
 
 const BUCKET_CONFIG = {
   public: false,
-  fileSizeLimit: 52428800,
+  fileSizeLimit: 524288000,
   allowedMimeTypes: ALLOWED_MIME_TYPES
 };
 
@@ -68,10 +68,10 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Missing file or path' }, { status: 400 });
     }
 
-    // Validar tamaño de archivo (máx 50MB)
-    const maxSize = 50 * 1024 * 1024;
+    // Validar tamaño de archivo (máx 500MB)
+    const maxSize = 500 * 1024 * 1024;
     if (file.size > maxSize) {
-      return NextResponse.json({ error: 'Archivo muy grande (máx 50MB)' }, { status: 400 });
+      return NextResponse.json({ error: 'Archivo muy grande (máx 500MB)' }, { status: 400 });
     }
 
     const supabaseUrl = process.env.NEXT_PUBLIC_ZEUS_SUPABASE_URL!;
