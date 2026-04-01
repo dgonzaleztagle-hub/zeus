@@ -9,10 +9,10 @@ import crypto from 'crypto';
 
 const ZELERI_BASE_URL = (
   process.env.ZELERI_BASE_URL || 'https://sandbox-zeleri.dev.ionix.cl/integration-kit'
-).replace(/\/$/, '');
+).trim().replace(/\/+$/, '');
 
-const ZELERI_TOKEN  = process.env.ZELERI_TOKEN  || '';
-const ZELERI_SECRET = process.env.ZELERI_SECRET || '';
+const ZELERI_TOKEN  = (process.env.ZELERI_TOKEN  || '').trim();
+const ZELERI_SECRET = (process.env.ZELERI_SECRET || '').trim();
 
 /**
  * Genera la firma HMAC-SHA256 requerida por Zeleri.

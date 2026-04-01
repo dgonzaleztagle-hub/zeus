@@ -55,6 +55,7 @@ export default function ZeleriPayModal({
   prefillEmail,
   prefillPhone,
 }: ZeleriPayModalProps) {
+  const formRef = useRef<HTMLFormElement | null>(null);
 
   // Si vienen los tres datos pre-cargados, ir directo a enrolling
   const hasAllPrefill = !!(prefillName && prefillEmail && prefillPhone);
@@ -70,6 +71,29 @@ export default function ZeleriPayModal({
     email: prefillEmail || '',
     phone: prefillPhone || '',
   });
+
+  const readNormalizedForm = useCallback(() => {
+    const fallback = {
+      name: form.name,
+      email: form.email,
+      phone: form.phone,
+    };
+
+    if (!formRef.current) {
+      return {
+        name: fallback.name.trim(),
+        email: fallback.email.trim().toLowerCase(),
+        phone: fallback.phone.trim(),
+      };
+    }
+
+    const values = new FormData(formRef.current);
+    const name = String(values.get('customer_name') ?? fallback.name).trim();
+    const email = String(values.get('customer_email') ?? fallback.email).trim().toLowerCase();
+    const phone = String(values.get('customer_phone') ?? fallback.phone).trim();
+
+    return { name, email, phone };
+  }, [form.email, form.name, form.phone]);
 
   // Resetear al abrir/cerrar
   useEffect(() => {
@@ -107,8 +131,11 @@ export default function ZeleriPayModal({
 
   // ---- Paso 1: Crear enrollment → obtener iframe URL ----
   const handleStartEnroll = useCallback(async () => {
-    const { name, email, phone } = form;
-    if (!name.trim() || !email.trim() || !phone.trim()) {
+    const { name, email, phone } = readNormalizedForm();
+
+    setForm({ name, email, phone });
+
+    if (!name || !email || !phone) {
       setErrorMsg('Por favor completa todos los campos');
       return;
     }
@@ -126,9 +153,9 @@ export default function ZeleriPayModal({
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
         body:    JSON.stringify({
-          customer_name:  name.trim(),
-          customer_email: email.toLowerCase(),
-          customer_phone: phone.trim(),
+          customer_name:  name,
+          customer_email: email,
+          customer_phone: phone,
           type,
           item_id:   itemId,
           item_name: itemName,
@@ -145,10 +172,15 @@ export default function ZeleriPayModal({
       setBookingId(data.booking_id || null);
 
     } catch (err: any) {
-      setErrorMsg(err.message || 'Error al conectar con Zeleri');
+      const message = err.message || 'Error al conectar con Zeleri';
+      if (message.toLowerCase().includes('ya no está disponible')) {
+        setErrorMsg('Ya existe una operación pendiente para este recurso. Espera un momento o recarga antes de reintentar.');
+      } else {
+        setErrorMsg(message);
+      }
       setStep('error');
     }
-  }, [form, type, itemId, itemName, amount, date, slot]);
+  }, [readNormalizedForm, type, itemId, itemName, amount, date, slot]);
 
   // Auto-iniciar si ya vienen todos los datos
   useEffect(() => {
@@ -285,12 +317,17 @@ export default function ZeleriPayModal({
 
                 {/* FORM — capturar datos del cliente */}
                 {step === 'form' && (
-                  <motion.div
+                  <motion.form
                     key="form"
                     initial={{ opacity: 0, x: 16 }}
                     animate={{ opacity: 1, x: 0 }}
                     exit={{ opacity: 0, x: -16 }}
                     className="space-y-4"
+                    ref={formRef}
+                    onSubmit={(e) => {
+                      e.preventDefault();
+                      handleStartEnroll();
+                    }}
                   >
                     <p className="text-sm text-white/40 mb-6">
                       Ingresa tus datos para continuar al pago.
@@ -306,10 +343,12 @@ export default function ZeleriPayModal({
                           {label}
                         </label>
                         <input
+                          name={key === 'name' ? 'customer_name' : key === 'email' ? 'customer_email' : 'customer_phone'}
                           type={inputType}
                           placeholder={placeholder}
                           value={form[key as keyof typeof form]}
                           onChange={e => setForm(f => ({ ...f, [key]: e.target.value }))}
+                          onInput={e => setForm(f => ({ ...f, [key]: (e.target as HTMLInputElement).value }))}
                           className="w-full h-12 bg-white/5 border border-white/10 rounded-xl px-4 text-sm focus:border-[#0EA5E9] outline-none transition-all"
                         />
                       </div>
@@ -320,13 +359,13 @@ export default function ZeleriPayModal({
                     )}
 
                     <button
-                      onClick={handleStartEnroll}
+                      type="submit"
                       className="w-full h-13 mt-2 py-4 rounded-xl font-bold text-sm transition-all hover:scale-[1.02] active:scale-95"
                       style={{ background: 'linear-gradient(135deg, #0EA5E9, #00D4FF)', color: '#0A0A0F' }}
                     >
                       Continuar al pago →
                     </button>
-                  </motion.div>
+                  </motion.form>
                 )}
 
                 {/* ENROLLING — iframe de Zeleri */}
