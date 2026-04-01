@@ -47,6 +47,7 @@ export default function ZeusAdminPage() {
   const [isSavingService, setIsSavingService] = useState(false);
   const [deletingProductId, setDeletingProductId] = useState<string | null>(null);
   const [deletingServiceId, setDeletingServiceId] = useState<string | null>(null);
+  const [serviceToDeactivate, setServiceToDeactivate] = useState<any | null>(null);
   
   const [newProduct, setNewProduct] = useState({ name: '', price: 0, description: '', is_free: false, file_path: '', image_url: '' });
   const [newService, setNewService] = useState({ 
@@ -343,6 +344,7 @@ export default function ZeusAdminPage() {
       addToast(err.message, 'error');
     } finally {
       setDeletingServiceId(null);
+      setServiceToDeactivate(null);
     }
   };
 
@@ -355,6 +357,48 @@ export default function ZeusAdminPage() {
         {toasts.map(t => (
           <Toast key={t.id} message={t.message} type={t.type} onClose={() => setToasts(prev => prev.filter(toast => toast.id !== t.id))} />
         ))}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {serviceToDeactivate && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[90] bg-black/70 backdrop-blur-sm flex items-center justify-center p-4"
+          >
+            <motion.div
+              initial={{ opacity: 0, y: 20, scale: 0.98 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 12, scale: 0.98 }}
+              className="w-full max-w-md rounded-3xl border border-white/10 bg-[#111118] p-6 shadow-2xl"
+            >
+              <div className="text-[10px] font-black uppercase tracking-[0.3em] text-red-400/80 mb-3">Confirmar desactivación</div>
+              <h3 className="text-xl font-black text-white mb-3">{serviceToDeactivate.title}</h3>
+              <p className="text-sm text-white/60 leading-relaxed">
+                Este servicio dejará de mostrarse en la agenda pública. No se borra de la base, pero sí desaparece para los clientes.
+              </p>
+              <p className="text-sm text-white/80 mt-4 font-semibold">
+                ¿Estás seguro de que quieres desactivarlo?
+              </p>
+              <div className="mt-6 flex gap-3">
+                <button
+                  onClick={() => setServiceToDeactivate(null)}
+                  className="flex-1 rounded-2xl border border-white/10 px-4 py-3 text-[10px] font-black uppercase tracking-widest text-white/60 hover:text-white"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={() => handleDeleteService(serviceToDeactivate.id)}
+                  disabled={deletingServiceId === serviceToDeactivate.id}
+                  className="flex-1 rounded-2xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-[10px] font-black uppercase tracking-widest text-red-400 hover:bg-red-500/20 disabled:opacity-40"
+                >
+                  {deletingServiceId === serviceToDeactivate.id ? 'Desactivando...' : 'Sí, desactivar'}
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
       </AnimatePresence>
 
       <div className="max-w-6xl mx-auto">
@@ -473,6 +517,7 @@ export default function ZeusAdminPage() {
                      <thead className="bg-white/5 text-[10px] uppercase tracking-widest text-white/30 font-black">
                         <tr>
                            <th className="px-6 py-4">Servicio / Tipo</th>
+                           <th className="px-6 py-4">Estado</th>
                            <th className="px-6 py-4">Tag / Color</th>
                            <th className="px-6 py-4">Valor</th>
                            <th className="px-6 py-4">Acciones</th>
@@ -488,6 +533,17 @@ export default function ZeusAdminPage() {
                                  </div>
                               </td>
                               <td className="px-6 py-4">
+                                 <span
+                                   className={`text-[9px] font-black px-2 py-0.5 rounded border uppercase tracking-widest ${
+                                     s.active === false
+                                       ? 'border-red-500/30 text-red-400'
+                                       : 'border-[#0EA5E920] text-[#0EA5E9]'
+                                   }`}
+                                 >
+                                   {s.active === false ? 'Inactivo' : 'Activo'}
+                                 </span>
+                              </td>
+                              <td className="px-6 py-4">
                                  <span className="text-[9px] font-black px-2 py-0.5 rounded border uppercase tracking-widest" style={{ borderColor: `${s.accent_color}40`, color: s.accent_color }}>{s.tag || 'Sin Tag'}</span>
                               </td>
                               <td className="px-6 py-4">
@@ -496,7 +552,13 @@ export default function ZeusAdminPage() {
                               </td>
                               <td className="px-6 py-4 flex gap-3">
                                  <button onClick={() => setNewService(s)} className="text-[10px] uppercase font-black text-[#0EA5E9] hover:underline">Editar</button>
-                                 <button onClick={() => handleDeleteService(s.id)} disabled={deletingServiceId === s.id} className="text-[10px] uppercase font-black text-red-500/30 hover:text-red-500 disabled:opacity-20">{deletingServiceId === s.id ? '...' : 'X'}</button>
+                                 <button
+                                    onClick={() => setServiceToDeactivate(s)}
+                                    disabled={deletingServiceId === s.id || s.active === false}
+                                    className="text-[10px] uppercase font-black text-red-500/40 hover:text-red-500 disabled:opacity-20"
+                                 >
+                                    {deletingServiceId === s.id ? '...' : (s.active === false ? 'Inactivo' : 'Desactivar')}
+                                 </button>
                               </td>
                            </tr>
                         ))}
