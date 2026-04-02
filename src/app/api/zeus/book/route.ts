@@ -1,27 +1,60 @@
 import { createClient } from '@supabase/supabase-js';
 import { NextResponse } from 'next/server';
-import { MercadoPagoConfig, Preference } from 'mercadopago';
+import { createZeleriOrder } from '@/lib/zeleri';
+
+// =============================================================================
+// MERCADOPAGO — comentado, conservado para eventual reactivación
+// =============================================================================
+// import { MercadoPagoConfig, Preference } from 'mercadopago';
+//
+// const mpClient = new MercadoPagoConfig({
+//   accessToken: process.env.MERCADOPAGO_ACCESS_TOKEN || ''
+// });
+//
+// async function createMPPreference(booking: any, params: {
+//   service_name: string; amount: number;
+//   client_name: string; client_email: string; client_whatsapp?: string;
+//   baseUrl: string;
+// }) {
+//   const preference = new Preference(mpClient);
+//   const response = await preference.create({
+//     body: {
+//       items: [{
+//         id: booking.id.toString(), title: `Servicio: ${params.service_name}`,
+//         quantity: 1, unit_price: params.amount, currency_id: 'CLP',
+//       }],
+//       payer: { name: params.client_name, email: params.client_email,
+//                phone: { number: params.client_whatsapp || '' } },
+//       back_urls: {
+//         success: `${params.baseUrl}/checkout/success?booking_id=${booking.id}`,
+//         failure: `${params.baseUrl}/#agenda`,
+//         pending: `${params.baseUrl}/checkout/success?booking_id=${booking.id}&pending=true`,
+//       },
+//       auto_return: 'approved',
+//       external_reference: booking.id.toString(),
+//       notification_url: `${params.baseUrl}/api/zeus/payments/webhook`,
+//     }
+//   });
+//   return response.init_point;
+// }
+// =============================================================================
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_ZEUS_SUPABASE_URL!,
   process.env.ZEUS_SUPABASE_SERVICE_ROLE_KEY!
 );
 
-const client = new MercadoPagoConfig({ 
-  accessToken: process.env.MERCADOPAGO_ACCESS_TOKEN || '' 
-});
-
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { 
-      service_id, 
-      service_name, 
-      amount, 
-      client_name, 
-      client_email, 
-      client_whatsapp, 
-      date, 
+    const {
+      service_id,
+      service_name,
+      amount,
+      client_name,
+      client_email,
+      client_whatsapp,
+      date,
       slot,
       simulate_payment
     } = body;
@@ -73,70 +106,60 @@ export async function POST(request: Request) {
     const { data: booking, error: bookingError } = await supabase
       .from('zeus_bookings')
       .insert({
-        service_id: service_id || null,
+        service_id:       service_id || null,
         service_name,
-        amount: sanitizedAmount,
-        client_name: client_name.trim(),
-        client_email: client_email.toLowerCase(),
-        client_whatsapp: client_whatsapp || null,
-        booking_date: date,
-        booking_slot: slot,
-        payment_status: isSimulated ? 'paid' : 'pending',
-        payment_method: isSimulated ? 'simulated' : 'mercadopago',
-        notes: isSimulated ? 'Pago simulado aprobado' : null
+        amount:           sanitizedAmount,
+        client_name:      client_name.trim(),
+        client_email:     client_email.toLowerCase(),
+        client_whatsapp:  client_whatsapp || null,
+        booking_date:     date,
+        booking_slot:     slot,
+        payment_status:   isSimulated ? 'paid' : 'pending',
+        payment_method:   isSimulated ? 'simulated' : 'zeleri',
+        notes:            isSimulated ? 'Pago simulado aprobado' : null,
       })
       .select()
       .single();
 
     if (bookingError) throw bookingError;
 
-    // 4. Si no es simulación, crear preferencia en Mercado Pago
+    // 4. Si no es simulación, crear orden en Zeleri
     let paymentUrl = null;
     if (!isSimulated && sanitizedAmount > 0) {
-      const preference = new Preference(client);
-      const host = request.headers.get('host') || 'asesoriaszeus.cl';
+      const host     = request.headers.get('host') || 'asesoriaszeus.cl';
       const protocol = host.includes('localhost') ? 'http' : 'https';
-      const baseUrl = `${protocol}://${host}`;
+      const baseUrl  = `${protocol}://${host}`;
 
-      const response = await preference.create({
-        body: {
-          items: [
-            {
-              id: booking.id.toString(),
-              title: `Servicio: ${service_name}`,
-              quantity: 1,
-              unit_price: sanitizedAmount,
-              currency_id: 'CLP',
-            }
-          ],
-          payer: {
-            name: client_name,
-            email: client_email,
-            phone: { number: client_whatsapp || '' }
-          },
-          back_urls: {
-            success: `${baseUrl}/checkout/success?booking_id=${booking.id}`,
-            failure: `${baseUrl}/#agenda`,
-            pending: `${baseUrl}/checkout/success?booking_id=${booking.id}&pending=true`,
-          },
-          auto_return: 'approved',
-          external_reference: booking.id.toString(),
-          notification_url: `${baseUrl}/api/zeus/payments/webhook`,
-        }
+      const zeleriOrder = await createZeleriOrder({
+        title:       `Reserva: ${service_name}`,
+        description: `Servicio agendado para el ${date} a las ${slot}`,
+        amount:      sanitizedAmount,
+        customer:    { email: client_email, name: client_name },
+        successUrl:  `${baseUrl}/checkout/success?booking_id=${booking.id}`,
+        failureUrl:  `${baseUrl}/#agenda`,
+        commerceOrder: booking.id,
       });
 
-      paymentUrl = response.init_point;
+      paymentUrl = zeleriOrder.data.url;
+
+      // Guardar el order_id de Zeleri en la reserva para verificación posterior
+      await supabase
+        .from('zeus_bookings')
+        .update({ payment_id: zeleriOrder.data.order_id.toString() })
+        .eq('id', booking.id);
     }
 
-    return NextResponse.json({ 
-      success: true, 
-      booking_id: booking.id,
+    return NextResponse.json({
+      success:     true,
+      booking_id:  booking.id,
       payment_url: paymentUrl,
-      message: isSimulated ? 'Reserva aprobada (simulación)' : 'Reserva creada, link de pago generado'
+      message:     isSimulated
+        ? 'Reserva aprobada (simulación)'
+        : 'Reserva creada, redirigiendo a pago',
     });
 
   } catch (error: any) {
-    console.error('Error creating booking:', error);
+    console.error('[Book] Error:', error);
     return NextResponse.json({ error: error.message || 'Error interno' }, { status: 500 });
   }
 }
