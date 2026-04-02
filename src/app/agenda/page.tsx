@@ -265,8 +265,9 @@ export default function AgendaPage() {
       </div>
 
       {/* Modal de pago inline con Zeleri */}
-      {selectedService && (
+      {payModalOpen && selectedService && (
         <ZeleriPayModal
+          key={`${selectedService.id}-${formData.email}-${formData.whatsapp}-${selectedSlot || ''}`}
           isOpen={payModalOpen}
           onClose={() => setPayModalOpen(false)}
           onSuccess={() => {
