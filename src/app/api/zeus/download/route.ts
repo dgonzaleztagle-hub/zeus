@@ -101,7 +101,7 @@ export async function GET(request: Request) {
       console.error('Log error (no-critical):', logError);
     }
 
-    return NextResponse.json({ download_url: signData.signedUrl });
+    return NextResponse.redirect(signData.signedUrl);
   } catch (error: any) {
     console.error('Download error:', error);
     return NextResponse.json({ error: error.message || 'Error interno al procesar la descarga' }, { status: 500 });
