@@ -67,6 +67,7 @@ export default function ZeleriPayModal({
   const [errorMsg,      setErrorMsg]      = useState<string | null>(null);
   const [downloadToken, setDownloadToken] = useState<string | null>(null);
   const [loadingHint,   setLoadingHint]   = useState<string>('Conectando con Zeleri...');
+  const [isRequestingEnrollment, setIsRequestingEnrollment] = useState(false);
 
   const [form, setForm] = useState({
     name:  prefillName  || '',
@@ -107,6 +108,7 @@ export default function ZeleriPayModal({
       setErrorMsg(null);
       setDownloadToken(null);
       setLoadingHint('Conectando con Zeleri...');
+      setIsRequestingEnrollment(false);
       setForm({
         name:  prefillName  || '',
         email: prefillEmail || '',
@@ -147,17 +149,20 @@ export default function ZeleriPayModal({
 
     if (!name || !email || !phone) {
       setErrorMsg('Por favor completa todos los campos');
+      setStep('error');
       return;
     }
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
       setErrorMsg('Email inválido');
+      setStep('error');
       return;
     }
 
     setErrorMsg(null);
     setStep('enrolling');
     setLoadingHint('Solicitando formulario seguro...');
+    setIsRequestingEnrollment(true);
 
     try {
       const controller = new AbortController();
@@ -201,6 +206,8 @@ export default function ZeleriPayModal({
         setErrorMsg(message);
       }
       setStep('error');
+    } finally {
+      setIsRequestingEnrollment(false);
     }
   }, [readNormalizedForm, type, itemId, itemName, amount, date, slot]);
 
@@ -430,9 +437,10 @@ export default function ZeleriPayModal({
                           )}
                           <button
                             onClick={handleStartEnroll}
+                            disabled={isRequestingEnrollment}
                             className="mt-3 text-[10px] uppercase tracking-widest font-black text-[#0EA5E9] hover:text-white transition-colors"
                           >
-                            Reintentar conexión
+                            {isRequestingEnrollment ? 'Reintentando...' : 'Reintentar conexión'}
                           </button>
                         </div>
                       </div>
