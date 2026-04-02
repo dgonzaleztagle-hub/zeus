@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { AnimatedGradient } from '@/components/premium/AnimatedGradient';
-import { format, addMonths, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay, isToday, addDays } from 'date-fns';
+import { format, addMonths, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, isToday, addDays } from 'date-fns';
 import { es } from 'date-fns/locale';
 
 export default function AgendaPage() {
@@ -110,6 +110,7 @@ export default function AgendaPage() {
     start: startOfMonth(currentMonth),
     end: endOfMonth(currentMonth)
   });
+  const leadingEmptyDays = Array.from({ length: startOfMonth(currentMonth).getDay() });
 
   return (
     <div className="relative pt-32 pb-24 min-h-screen overflow-hidden text-white font-sans">
@@ -190,6 +191,9 @@ export default function AgendaPage() {
                        {['D','L','M','M','J','V','S'].map((d, idx)=><div key={idx}>{d}</div>)}
                     </div>
                     <div className="grid grid-cols-7 gap-1">
+                      {leadingEmptyDays.map((_, index) => (
+                        <div key={`empty-${index}`} className="h-10" aria-hidden="true" />
+                      ))}
                       {daysInMonth.map(day => (
                         <button key={day.toString()} disabled={day < new Date() && !isToday(day)}
                                 onClick={() => setSelectedDate(day)}
