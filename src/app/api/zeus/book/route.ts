@@ -140,7 +140,6 @@ export async function POST(request: Request) {
         customer:    { email: client_email, name: client_name },
         successUrl:  `${baseUrl}/checkout/success?booking_id=${booking.id}`,
         failureUrl:  `${baseUrl}/#agenda`,
-        commerceOrder: booking.id,
       });
 
       paymentUrl = zeleriOrder.data.url;
