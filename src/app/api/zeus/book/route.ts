@@ -115,7 +115,8 @@ export async function POST(request: Request) {
         booking_date:     date,
         booking_slot:     slot,
         payment_status:   isSimulated ? 'paid' : 'pending',
-        payment_method:   isSimulated ? 'simulated' : 'zeleri',
+        // Mantener etiqueta legacy compatible con la base actual.
+        payment_method:   isSimulated ? 'simulated' : 'mercadopago',
         notes:            isSimulated ? 'Pago simulado aprobado' : null,
       })
       .select()
