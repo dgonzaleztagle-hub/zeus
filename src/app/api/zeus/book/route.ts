@@ -106,7 +106,9 @@ export async function POST(request: Request) {
     const { data: booking, error: bookingError } = await supabase
       .from('zeus_bookings')
       .insert({
-        service_id:       service_id || null,
+        // service_id puede tener un tipo legacy distinto en algunas bases.
+        // Conservamos la referencia humana en service_name para no romper la reserva.
+        service_id:       null,
         service_name,
         amount:           sanitizedAmount,
         client_name:      client_name.trim(),
