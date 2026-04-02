@@ -27,8 +27,66 @@ const ZELERI_SECRET = sanitizeEnv(process.env.ZELERI_SECRET);
  * Para GET con query string: firmar el string directamente.
  */
 export function zeleriSign(data: Record<string, unknown> | string): string {
-  const payload = typeof data === 'string' ? data : JSON.stringify(data);
-  return crypto.createHmac('sha256', ZELERI_SECRET).update(payload).digest('hex');
+  const object = parseZeleriInput(data);
+  const sortedObject = sortZeleriObjectKeys(object);
+  const message = concatenateZeleriObjectProperties(sortedObject);
+  return crypto.createHmac('sha256', ZELERI_SECRET).update(message).digest('hex');
+}
+
+function parseZeleriInput(input: Record<string, unknown> | string) {
+  if (typeof input === 'object' && input !== null) {
+    return input;
+  }
+
+  const params = new URLSearchParams(input);
+  const parsed: Record<string, unknown> = {};
+  for (const [key, value] of params.entries()) {
+    parsed[key] = value;
+  }
+  return parsed;
+}
+
+function sortZeleriSingleObject(obj: Record<string, any>) {
+  const sortedKeys = Object.keys(obj).sort();
+  const sortedObject: Record<string, any> = {};
+
+  for (const key of sortedKeys) {
+    const value = obj[key];
+
+    if (Array.isArray(value)) {
+      sortedObject[key] = value.every((item) => typeof item === 'string')
+        ? [...value].sort((a, b) => a.localeCompare(b))
+        : value.map((item) => sortZeleriObjectKeys(item));
+      continue;
+    }
+
+    if (typeof value === 'object' && value !== null) {
+      sortedObject[key] = sortZeleriObjectKeys(value);
+      continue;
+    }
+
+    sortedObject[key] = value;
+  }
+
+  return sortedObject;
+}
+
+function sortZeleriObjectKeys(input: any): any {
+  if (Array.isArray(input)) {
+    return input.map(sortZeleriObjectKeys);
+  }
+  if (typeof input === 'object' && input !== null) {
+    return sortZeleriSingleObject(input);
+  }
+  return input;
+}
+
+function concatenateZeleriObjectProperties(object: Record<string, any>) {
+  return Object.keys(object)
+    .sort()
+    .filter((property) => property !== 'signature')
+    .map((property) => `${property}${JSON.stringify(object[property])}`)
+    .join('');
 }
 
 // ---------------------------------------------------------------------------
