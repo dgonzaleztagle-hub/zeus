@@ -91,12 +91,20 @@ export async function POST(request: NextRequest) {
 
     // Sanitizar precio: asegurar número positivo y entero (CLP)
     const sanitizedPrice = Math.max(0, Math.floor(Number(price) || 0));
+    const isFreeProduct = Boolean(is_free) || sanitizedPrice === 0;
+
+    if (!isFreeProduct && sanitizedPrice < 1000) {
+      return NextResponse.json(
+        { error: 'Los productos pagados deben tener un precio mínimo de $1.000 CLP para operar con Zeleri.' },
+        { status: 400 }
+      );
+    }
 
     const productData = {
       name,
       description,
       price: sanitizedPrice,
-      is_free: Boolean(is_free) || sanitizedPrice === 0,
+      is_free: isFreeProduct,
       file_path,
       image_url,
       active: true

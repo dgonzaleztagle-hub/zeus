@@ -67,8 +67,18 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     const { id, ...serviceData } = body;
+    const sanitizedPrice = Math.max(0, Math.floor(Number(serviceData.price) || 0));
+
+    if (sanitizedPrice > 0 && sanitizedPrice < 1000) {
+      return NextResponse.json(
+        { error: 'Los servicios pagados deben tener un precio mínimo de $1.000 CLP para operar con Zeleri.' },
+        { status: 400 }
+      );
+    }
+
     const normalizedServiceData = {
       ...serviceData,
+      price: sanitizedPrice,
       active: serviceData.active ?? true,
       status: serviceData.status ?? 'active',
     };

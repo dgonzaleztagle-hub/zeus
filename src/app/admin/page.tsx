@@ -261,6 +261,10 @@ export default function ZeusAdminPage() {
       addToast('Campos obligatorios faltantes', 'error');
       return;
     }
+    if (!newProduct.is_free && Number(newProduct.price || 0) < 1000) {
+      addToast('Los productos pagados deben costar al menos $1.000 CLP para cobrar con Zeleri.', 'error');
+      return;
+    }
     setIsSavingProduct(true);
     try {
       const res = await fetch('/api/zeus/admin/products', {
@@ -302,6 +306,10 @@ export default function ZeusAdminPage() {
   const handleSaveService = async () => {
     if (!newService.title) {
       addToast('Título obligatorio', 'error');
+      return;
+    }
+    if (Number(newService.price || 0) > 0 && Number(newService.price || 0) < 1000) {
+      addToast('Los servicios pagados deben costar al menos $1.000 CLP para cobrar con Zeleri.', 'error');
       return;
     }
     setIsSavingService(true);
@@ -652,6 +660,11 @@ export default function ZeusAdminPage() {
                         <label className="text-[9px] uppercase text-white/30 font-black mb-1 block">Precio Real (Agenda - Solo Números)</label>
                         <input type="number" value={newService.price || 0} onChange={e => setNewService({...newService, price: parseInt(e.target.value) || 0})}
                                className="w-full bg-[#0EA5E9]/5 border border-[#0EA5E9]/20 rounded-xl px-4 py-3 text-xs outline-none focus:border-[#0EA5E9] font-bold text-[#0EA5E9]" />
+                        {Number(newService.price || 0) > 0 && Number(newService.price || 0) < 1000 && (
+                           <p className="mt-2 text-[10px] font-semibold text-amber-400">
+                              Zeleri exige un mínimo de $1.000 CLP para servicios pagados.
+                           </p>
+                        )}
                      </div>
                      <button onClick={handleSaveService} disabled={isSavingService || !newService.title}
                              className="w-full py-4 rounded-xl text-[10px] font-black uppercase tracking-widest bg-[#0EA5E9] text-[#0A0A0F] active:scale-95 disabled:opacity-30">
@@ -699,7 +712,15 @@ export default function ZeusAdminPage() {
                   <div className="space-y-6">
                      <div><label className="text-[9px] uppercase text-white/30 font-black mb-2 block">Nombre</label><input value={newProduct.name} onChange={e => setNewProduct({...newProduct, name: e.target.value})} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-4 text-xs outline-none focus:border-[#0EA5E9]" /></div>
                      <div className="grid grid-cols-2 gap-4">
-                        <div><label className="text-[9px] uppercase text-white/30 font-black mb-2 block">Precio</label><input type="number" value={newProduct.price || ''} onChange={e => setNewProduct({...newProduct, price: parseInt(e.target.value) || 0})} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-4 text-xs outline-none focus:border-[#0EA5E9]" /></div>
+                        <div>
+                           <label className="text-[9px] uppercase text-white/30 font-black mb-2 block">Precio</label>
+                           <input type="number" value={newProduct.price || ''} onChange={e => setNewProduct({...newProduct, price: parseInt(e.target.value) || 0})} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-4 text-xs outline-none focus:border-[#0EA5E9]" />
+                           {!newProduct.is_free && Number(newProduct.price || 0) > 0 && Number(newProduct.price || 0) < 1000 && (
+                              <p className="mt-2 text-[10px] font-semibold text-amber-400">
+                                 Zeleri exige un mínimo de $1.000 CLP para productos pagados.
+                              </p>
+                           )}
+                        </div>
                         <div className="flex flex-col justify-end"><label className="flex items-center gap-2 cursor-pointer p-4 bg-white/5 rounded-xl border border-white/10"><input type="checkbox" checked={newProduct.is_free} onChange={e => setNewProduct({...newProduct, is_free: e.target.checked})} /><span className="text-[9px] font-black uppercase text-white/60">Gratis</span></label></div>
                      </div>
                      <div className="space-y-4">
