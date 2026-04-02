@@ -77,7 +77,7 @@ export async function POST(request: Request) {
         : `Pago por ${item_name}`,
       amount:      sanitizedAmount,
       customer:    { email: client_email, name: client_name },
-      successUrl:  `${baseUrl}/checkout/success?type=${type}&status=approved&product_id=${encodeURIComponent(item_id)}`,
+      successUrl:  `${baseUrl}/checkout/success?type=${type}&status=approved&product_id=${encodeURIComponent(item_id)}&client_email=${encodeURIComponent(client_email)}`,
       failureUrl:  `${baseUrl}/checkout/error`,
       commerceOrder:     item_id,
       commerceReference: client_email,
