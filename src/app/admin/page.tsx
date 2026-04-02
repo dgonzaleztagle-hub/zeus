@@ -348,6 +348,32 @@ export default function ZeusAdminPage() {
     }
   };
 
+  const handleReactivateService = async (service: any) => {
+    setDeletingServiceId(service.id);
+    try {
+      const res = await fetch('/api/zeus/admin/services', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-zeus-bypass': 'zeus_master_key_2026'
+        },
+        body: JSON.stringify({
+          ...service,
+          active: true,
+          status: 'active',
+        })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Error al reactivar');
+      addToast('Servicio reactivado', 'success');
+      fetchData();
+    } catch (err: any) {
+      addToast(err.message, 'error');
+    } finally {
+      setDeletingServiceId(null);
+    }
+  };
+
   const start = startOfWeek(selectedDate, { weekStartsOn: 1 });
   const weekDays = eachDayOfInterval({ start, end: addDays(start, 6) });
 
@@ -552,13 +578,23 @@ export default function ZeusAdminPage() {
                               </td>
                               <td className="px-6 py-4 flex gap-3">
                                  <button onClick={() => setNewService(s)} className="text-[10px] uppercase font-black text-[#0EA5E9] hover:underline">Editar</button>
-                                 <button
-                                    onClick={() => setServiceToDeactivate(s)}
-                                    disabled={deletingServiceId === s.id || s.active === false}
-                                    className="text-[10px] uppercase font-black text-red-500/40 hover:text-red-500 disabled:opacity-20"
-                                 >
-                                    {deletingServiceId === s.id ? '...' : (s.active === false ? 'Inactivo' : 'Desactivar')}
-                                 </button>
+                                 {s.active === false ? (
+                                    <button
+                                      onClick={() => handleReactivateService(s)}
+                                      disabled={deletingServiceId === s.id}
+                                      className="text-[10px] uppercase font-black text-emerald-400/70 hover:text-emerald-300 disabled:opacity-20"
+                                    >
+                                      {deletingServiceId === s.id ? '...' : 'Reactivar'}
+                                    </button>
+                                 ) : (
+                                    <button
+                                      onClick={() => setServiceToDeactivate(s)}
+                                      disabled={deletingServiceId === s.id}
+                                      className="text-[10px] uppercase font-black text-red-500/40 hover:text-red-500 disabled:opacity-20"
+                                    >
+                                      {deletingServiceId === s.id ? '...' : 'Desactivar'}
+                                    </button>
+                                 )}
                               </td>
                            </tr>
                         ))}
