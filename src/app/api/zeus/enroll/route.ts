@@ -38,6 +38,11 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Faltan campos obligatorios' }, { status: 400 });
     }
 
+    const sanitizedAmount = Number(amount);
+    if (Number.isNaN(sanitizedAmount) || sanitizedAmount < 1000) {
+      return NextResponse.json({ error: 'Monto inválido (mínimo $1.000)' }, { status: 400 });
+    }
+
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(customer_email)) {
       return NextResponse.json({ error: 'Email inválido' }, { status: 400 });
@@ -91,7 +96,7 @@ export async function POST(request: Request) {
           .insert({
             service_id:      item_id   || null,
             service_name:    item_name || null,
-            amount:          Number(amount),
+            amount:          sanitizedAmount,
             client_name:     customer_name.trim(),
             client_email:    normalizedEmail,
             client_whatsapp: customer_phone || null,

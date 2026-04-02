@@ -135,6 +135,12 @@ export default function ZeleriPayModal({
 
     setForm({ name, email, phone });
 
+    if (amount < 1000) {
+      setErrorMsg('Zeleri solo permite pagos desde $1.000 CLP');
+      setStep('error');
+      return;
+    }
+
     if (!name || !email || !phone) {
       setErrorMsg('Por favor completa todos los campos');
       return;
@@ -196,6 +202,10 @@ export default function ZeleriPayModal({
     setErrorMsg(null);
 
     try {
+      if (amount < 1000) {
+        throw new Error('Zeleri solo permite pagos desde $1.000 CLP');
+      }
+
       const email = form.email.toLowerCase();
 
       // Consultar tarjetas registradas para este email

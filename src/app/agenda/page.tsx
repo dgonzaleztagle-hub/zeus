@@ -64,8 +64,12 @@ export default function AgendaPage() {
   const prevStep = () => setStep(s => s - 1);
 
   const handleCheckout = () => {
-    if (!formData.name || !formData.email || !selectedSlot || !selectedService) {
+    if (!formData.name || !formData.email || !formData.whatsapp || !selectedSlot || !selectedService) {
       alert('Por favor completa todos los campos');
+      return;
+    }
+    if ((selectedService?.price || 0) < 1000) {
+      alert('Zeleri solo permite pagos desde $1.000 CLP');
       return;
     }
     setPayModalOpen(true);
@@ -245,7 +249,7 @@ export default function AgendaPage() {
 
                 <div className="mt-8 pt-8 border-t border-white/5 flex justify-between items-center">
                    <button onClick={prevStep} className="text-sm font-bold opacity-50 hover:opacity-100 transition-opacity">← Atrás</button>
-                   <button onClick={handleCheckout} disabled={!formData.name || !formData.email || isSubmitting}
+                   <button onClick={handleCheckout} disabled={!formData.name || !formData.email || !formData.whatsapp || isSubmitting}
                            className="px-10 py-4 rounded-xl font-bold transition-all shadow-lg active:scale-95 disabled:grayscale"
                            style={{ background: 'linear-gradient(135deg, #0EA5E9, #00D4FF)', color: '#0A0A0F', boxShadow: '0 0 30px rgba(14,165,233,0.3)' }}>
                      Pagar →
