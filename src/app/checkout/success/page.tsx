@@ -24,6 +24,12 @@ function SuccessContent() {
   const orderIdParam = searchParams.get('order_id');
 
   useEffect(() => {
+    if (typeof window === 'undefined') return;
+    if (window.self === window.top) return;
+    window.top!.location.href = window.location.href;
+  }, []);
+
+  useEffect(() => {
     if (type) {
       setResolvedType(type);
       return;

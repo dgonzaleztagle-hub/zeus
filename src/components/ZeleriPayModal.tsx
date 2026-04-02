@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 export interface ZeleriPayModalProps {
@@ -17,7 +17,7 @@ export interface ZeleriPayModalProps {
   prefillPhone?: string;
 }
 
-type ModalStep = 'form' | 'processing' | 'error';
+type ModalStep = 'form' | 'processing' | 'checkout' | 'error';
 
 export default function ZeleriPayModal({
   isOpen,
@@ -34,22 +34,25 @@ export default function ZeleriPayModal({
 }: ZeleriPayModalProps) {
   const [step, setStep] = useState<ModalStep>('form');
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [paymentUrl, setPaymentUrl] = useState<string | null>(null);
   const [form, setForm] = useState({
     name: prefillName || '',
     email: prefillEmail || '',
     phone: prefillPhone || '',
   });
+  const hasPrefill = useMemo(() => Boolean(prefillName && prefillEmail), [prefillEmail, prefillName]);
 
   useEffect(() => {
     if (!isOpen) return;
-    setStep(prefillName && prefillEmail ? 'processing' : 'form');
+    setStep(hasPrefill ? 'processing' : 'form');
     setErrorMsg(null);
+    setPaymentUrl(null);
     setForm({
       name: prefillName || '',
       email: prefillEmail || '',
       phone: prefillPhone || '',
     });
-  }, [isOpen, prefillEmail, prefillName, prefillPhone]);
+  }, [hasPrefill, isOpen, prefillEmail, prefillName, prefillPhone]);
 
   async function startCheckout(override?: { name?: string; email?: string; phone?: string }) {
     const name = (override?.name ?? form.name).trim();
@@ -133,7 +136,8 @@ export default function ZeleriPayModal({
         );
       }
 
-      window.location.href = data.payment_url;
+      setPaymentUrl(data.payment_url);
+      setStep('checkout');
     } catch (error: any) {
       setErrorMsg(error.message || 'Error al iniciar el pago');
       setStep('error');
@@ -143,7 +147,7 @@ export default function ZeleriPayModal({
   useEffect(() => {
     if (!isOpen) return;
     if (type !== 'service') return;
-    if (!prefillName || !prefillEmail) return;
+    if (!hasPrefill) return;
     if (step !== 'processing') return;
 
     startCheckout({
@@ -152,11 +156,12 @@ export default function ZeleriPayModal({
       phone: prefillPhone || '',
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isOpen, type, prefillName, prefillEmail, prefillPhone, step]);
+  }, [hasPrefill, isOpen, type, prefillName, prefillEmail, prefillPhone, step]);
 
   const handleRetry = () => {
     setErrorMsg(null);
-    setStep(prefillName && prefillEmail ? 'processing' : 'form');
+    setPaymentUrl(null);
+    setStep(hasPrefill ? 'processing' : 'form');
   };
 
   if (!isOpen) return null;
@@ -293,6 +298,35 @@ export default function ZeleriPayModal({
                       ? 'Estamos preparando tu reserva y la orden de pago.'
                       : 'Estamos preparando tu orden para el checkout one shot de Zeleri.'}
                   </p>
+                </motion.div>
+              )}
+
+              {step === 'checkout' && paymentUrl && (
+                <motion.div
+                  key="checkout"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  className="space-y-4"
+                >
+                  <p className="text-sm text-white/40 text-center">
+                    Completa tu pago sin salir de Zeus.
+                  </p>
+                  <div className="overflow-hidden rounded-2xl border border-white/10 bg-white">
+                    <iframe
+                      src={paymentUrl}
+                      title="Checkout one shot de Zeleri"
+                      className="w-full"
+                      style={{ height: '72vh', minHeight: '640px', border: 0 }}
+                      allow="payment *"
+                    />
+                  </div>
+                  <button
+                    onClick={handleRetry}
+                    className="w-full py-3 rounded-xl border border-white/10 text-sm font-bold text-white/60 hover:text-white transition-all"
+                  >
+                    Recargar checkout
+                  </button>
                 </motion.div>
               )}
 

@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { AnimatedGradient } from '@/components/premium/AnimatedGradient';
 import { format, addMonths, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, isToday, addDays } from 'date-fns';
 import { es } from 'date-fns/locale';
+import ZeleriPayModal from '@/components/ZeleriPayModal';
 
 export default function AgendaPage() {
   const [services, setServices] = useState<any[]>([]);
@@ -35,8 +36,8 @@ export default function AgendaPage() {
   const [availableSlots, setAvailableSlots] = useState<string[]>([]);
   const [selectedSlot, setSelectedSlot] = useState<string | null>(null);
   const [isLoadingSlots, setIsLoadingSlots] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({ name: '', email: '', whatsapp: '' });
+  const [payModalOpen, setPayModalOpen] = useState(false);
 
   const fetchAvailability = useCallback(async (date: Date) => {
     setIsLoadingSlots(true);
@@ -70,39 +71,7 @@ export default function AgendaPage() {
       alert('Zeleri solo permite pagos desde $1.000 CLP');
       return;
     }
-
-    setIsSubmitting(true);
-
-    try {
-      const res = await fetch('/api/zeus/book', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          service_id: selectedService.id,
-          service_name: selectedService.title || selectedService.name,
-          amount: selectedService.price,
-          client_name: formData.name,
-          client_email: formData.email,
-          client_whatsapp: formData.whatsapp,
-          date: format(selectedDate, 'yyyy-MM-dd'),
-          slot: selectedSlot,
-        }),
-      });
-
-      const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data.error || 'No se pudo iniciar el checkout');
-      }
-
-      if (!data.payment_url) {
-        throw new Error('Zeleri no devolvió una URL de pago válida.');
-      }
-
-      window.location.href = data.payment_url;
-    } catch (error: any) {
-      alert(error.message || 'No se pudo iniciar el pago');
-      setIsSubmitting(false);
-    }
+    setPayModalOpen(true);
   };
 
   // Generar días del calendario
@@ -135,13 +104,6 @@ export default function AgendaPage() {
         </div>
 
         <div className="bg-[#111118] border border-white/5 rounded-3xl p-8 md:p-12 min-h-[500px] flex flex-col relative overflow-hidden">
-          {isSubmitting && (
-             <div className="absolute inset-0 bg-[#0A0A0F]/80 backdrop-blur-md z-50 flex flex-col items-center justify-center">
-                <div className="w-12 h-12 border-4 border-[#0EA5E9] border-t-transparent rounded-full animate-spin mb-4" />
-                <p className="text-sm font-bold tracking-widest uppercase animate-pulse">Redirigiendo a pago seguro...</p>
-             </div>
-          )}
-
           <AnimatePresence mode="wait">
             {step === 1 && (
               <motion.div key="step1" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="flex-1">
@@ -283,7 +245,7 @@ export default function AgendaPage() {
 
                 <div className="mt-8 pt-8 border-t border-white/5 flex justify-between items-center">
                    <button onClick={prevStep} className="text-sm font-bold opacity-50 hover:opacity-100 transition-opacity">← Atrás</button>
-                   <button onClick={handleCheckout} disabled={!formData.name || !formData.email || !formData.whatsapp || isSubmitting}
+                   <button onClick={handleCheckout} disabled={!formData.name || !formData.email || !formData.whatsapp}
                            className="px-10 py-4 rounded-xl font-bold transition-all shadow-lg active:scale-95 disabled:grayscale"
                            style={{ background: 'linear-gradient(135deg, #0EA5E9, #00D4FF)', color: '#0A0A0F', boxShadow: '0 0 30px rgba(14,165,233,0.3)' }}>
                      Ir a pagar →
@@ -297,6 +259,22 @@ export default function AgendaPage() {
           Powered by HojaCero Agenda Engine
         </p>
       </div>
+
+      {selectedService && selectedSlot && (
+        <ZeleriPayModal
+          isOpen={payModalOpen}
+          onClose={() => setPayModalOpen(false)}
+          type="service"
+          itemId={selectedService.id}
+          itemName={selectedService.title || selectedService.name}
+          amount={selectedService.price}
+          date={format(selectedDate, 'yyyy-MM-dd')}
+          slot={selectedSlot}
+          prefillName={formData.name}
+          prefillEmail={formData.email}
+          prefillPhone={formData.whatsapp}
+        />
+      )}
 
     </div>
   );
