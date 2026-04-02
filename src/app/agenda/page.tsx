@@ -5,7 +5,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { AnimatedGradient } from '@/components/premium/AnimatedGradient';
 import { format, addMonths, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay, isToday, addDays } from 'date-fns';
 import { es } from 'date-fns/locale';
-import ZeleriPayModal from '@/components/ZeleriPayModal';
 
 export default function AgendaPage() {
   const [services, setServices] = useState<any[]>([]);
@@ -38,7 +37,6 @@ export default function AgendaPage() {
   const [isLoadingSlots, setIsLoadingSlots] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({ name: '', email: '', whatsapp: '' });
-  const [payModalOpen, setPayModalOpen] = useState(false);
 
   const fetchAvailability = useCallback(async (date: Date) => {
     setIsLoadingSlots(true);
@@ -63,7 +61,7 @@ export default function AgendaPage() {
   const nextStep = () => setStep(s => s + 1);
   const prevStep = () => setStep(s => s - 1);
 
-  const handleCheckout = () => {
+  const handleCheckout = async () => {
     if (!formData.name || !formData.email || !formData.whatsapp || !selectedSlot || !selectedService) {
       alert('Por favor completa todos los campos');
       return;
@@ -72,7 +70,39 @@ export default function AgendaPage() {
       alert('Zeleri solo permite pagos desde $1.000 CLP');
       return;
     }
-    setPayModalOpen(true);
+
+    setIsSubmitting(true);
+
+    try {
+      const res = await fetch('/api/zeus/book', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          service_id: selectedService.id,
+          service_name: selectedService.title || selectedService.name,
+          amount: selectedService.price,
+          client_name: formData.name,
+          client_email: formData.email,
+          client_whatsapp: formData.whatsapp,
+          date: format(selectedDate, 'yyyy-MM-dd'),
+          slot: selectedSlot,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || 'No se pudo iniciar el checkout');
+      }
+
+      if (!data.payment_url) {
+        throw new Error('Zeleri no devolvió una URL de pago válida.');
+      }
+
+      window.location.href = data.payment_url;
+    } catch (error: any) {
+      alert(error.message || 'No se pudo iniciar el pago');
+      setIsSubmitting(false);
+    }
   };
 
   // Generar días del calendario
@@ -107,7 +137,7 @@ export default function AgendaPage() {
           {isSubmitting && (
              <div className="absolute inset-0 bg-[#0A0A0F]/80 backdrop-blur-md z-50 flex flex-col items-center justify-center">
                 <div className="w-12 h-12 border-4 border-[#0EA5E9] border-t-transparent rounded-full animate-spin mb-4" />
-                <p className="text-sm font-bold tracking-widest uppercase animate-pulse">Simulando Pago Exitoso...</p>
+                <p className="text-sm font-bold tracking-widest uppercase animate-pulse">Redirigiendo a pago seguro...</p>
              </div>
           )}
 
@@ -252,7 +282,7 @@ export default function AgendaPage() {
                    <button onClick={handleCheckout} disabled={!formData.name || !formData.email || !formData.whatsapp || isSubmitting}
                            className="px-10 py-4 rounded-xl font-bold transition-all shadow-lg active:scale-95 disabled:grayscale"
                            style={{ background: 'linear-gradient(135deg, #0EA5E9, #00D4FF)', color: '#0A0A0F', boxShadow: '0 0 30px rgba(14,165,233,0.3)' }}>
-                     Pagar →
+                     Ir a pagar →
                    </button>
                 </div>
               </motion.div>
@@ -264,28 +294,6 @@ export default function AgendaPage() {
         </p>
       </div>
 
-      {/* Modal de pago inline con Zeleri */}
-      {payModalOpen && selectedService && (
-        <ZeleriPayModal
-          key={`${selectedService.id}-${formData.email}-${formData.whatsapp}-${selectedSlot || ''}`}
-          isOpen={payModalOpen}
-          onClose={() => setPayModalOpen(false)}
-          onSuccess={() => {
-            setPayModalOpen(false);
-            // Redirigir a success mostrando la reserva confirmada
-            window.location.href = '/checkout/success?type=service&status=approved';
-          }}
-          type="service"
-          itemId={selectedService.id}
-          itemName={selectedService.title || selectedService.name}
-          amount={selectedService.price}
-          date={format(selectedDate, 'yyyy-MM-dd')}
-          slot={selectedSlot || ''}
-          prefillName={formData.name}
-          prefillEmail={formData.email}
-          prefillPhone={formData.whatsapp}
-        />
-      )}
     </div>
   );
 }

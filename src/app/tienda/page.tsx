@@ -238,12 +238,6 @@ export default function TiendaPage() {
         <ZeleriPayModal
           isOpen={payModal.open}
           onClose={() => setPayModal({ open: false, product: null })}
-          onSuccess={(downloadToken) => {
-            setPayModal({ open: false, product: null });
-            if (downloadToken) {
-              window.location.href = `/api/zeus/download?token=${downloadToken}`;
-            }
-          }}
           type="product"
           itemId={payModal.product.id}
           itemName={payModal.product.name}

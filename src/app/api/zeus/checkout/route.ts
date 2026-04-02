@@ -1,13 +1,53 @@
 import { NextResponse } from 'next/server';
-import { MercadoPagoConfig, Preference } from 'mercadopago';
+import { createZeleriOrder } from '@/lib/zeleri';
+
+// =============================================================================
+// MERCADOPAGO — comentado, conservado para eventual reactivación
+// =============================================================================
+// import { MercadoPagoConfig, Preference } from 'mercadopago';
+//
+// async function createMercadoPagoPreference(params: {
+//   type: string; item_id: string; item_name: string; amount: number;
+//   client_name: string; client_email: string;
+//   metadata?: { date?: string; slot?: string; client_whatsapp?: string };
+//   baseUrl: string;
+// }) {
+//   const accessToken = (process.env.MERCADOPAGO_ACCESS_TOKEN || '').trim();
+//   if (!accessToken) throw new Error('Token de Mercado Pago no configurado');
+//   const mpClient = new MercadoPagoConfig({ accessToken });
+//   const preference = new Preference(mpClient);
+//   const { date, slot, client_whatsapp } = params.metadata || {};
+//   const externalRef = [
+//     params.type, params.item_id, params.item_name,
+//     encodeURIComponent(params.client_name), encodeURIComponent(params.client_email),
+//     date || '', slot || '', encodeURIComponent(client_whatsapp || ''), params.amount,
+//   ].join('|');
+//   const response = await preference.create({
+//     body: {
+//       items: [{ id: params.item_id, title: params.item_name, quantity: 1,
+//                 unit_price: Number(params.amount), currency_id: 'CLP' }],
+//       payer: { name: params.client_name, email: params.client_email },
+//       back_urls: {
+//         success: `${params.baseUrl}/checkout/success?type=${params.type}&status=approved`,
+//         failure: `${params.baseUrl}/checkout/error`,
+//         pending: `${params.baseUrl}/checkout/success?type=${params.type}&status=pending`,
+//       },
+//       auto_return: 'approved',
+//       external_reference: externalRef,
+//       notification_url: `${params.baseUrl}/api/zeus/payments/webhook`,
+//     }
+//   });
+//   return response.init_point;
+// }
+// =============================================================================
 
 /**
  * POST /api/zeus/checkout
- * 
- * Crea una preferencia de pago en Mercado Pago.
- * NO escribe nada en la base de datos aún.
- * La reserva se crea SOLO cuando el webhook confirma el pago.
- * 
+ *
+ * Crea una orden de pago en Zeleri (checkout oneshot, gateway_id=4).
+ * No escribe nada en la base de datos.
+ * Para reservas de servicios, usar /api/zeus/book (crea registro pending primero).
+ *
  * Body: { type, item_id, item_name, amount, client_name, client_email, metadata }
  */
 export async function POST(request: Request) {
@@ -19,62 +59,39 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Faltan campos obligatorios' }, { status: 400 });
     }
 
-    const accessToken = (process.env.MERCADOPAGO_ACCESS_TOKEN || '').trim();
-    if (!accessToken) {
-      return NextResponse.json({ error: 'Token de Mercado Pago no configurado' }, { status: 500 });
+    const sanitizedAmount = Number(amount);
+    if (Number.isNaN(sanitizedAmount) || sanitizedAmount < 1000) {
+      return NextResponse.json({ error: 'Monto inválido (mínimo $1.000)' }, { status: 400 });
     }
 
-    const mpClient = new MercadoPagoConfig({ accessToken });
-    const preference = new Preference(mpClient);
-
-    const host = request.headers.get('host') || 'asesoriaszeus.cl';
+    const host     = request.headers.get('host') || 'asesoriaszeus.cl';
     const protocol = host.includes('localhost') ? 'http' : 'https';
-    const baseUrl = `${protocol}://${host}`;
+    const baseUrl  = `${protocol}://${host}`;
 
-    // Construir external_reference con todos los datos necesarios para el webhook
-    // Formato: type|item_id|client_name|client_email|date|slot|whatsapp
-    const { date, slot, client_whatsapp } = metadata || {};
-    const externalRef = [
-      type,
-      item_id,
-      item_name,
-      encodeURIComponent(client_name),
-      encodeURIComponent(client_email),
-      date || '',
-      slot || '',
-      encodeURIComponent(client_whatsapp || ''),
-      amount
-    ].join('|');
+    const { date, slot } = metadata || {};
 
-    const response = await preference.create({
-      body: {
-        items: [{
-          id: item_id,
-          title: item_name,
-          quantity: 1,
-          unit_price: Number(amount),
-          currency_id: 'CLP',
-        }],
-        payer: { name: client_name, email: client_email },
-        back_urls: {
-          success: `${baseUrl}/checkout/success?type=${type}&status=approved`,
-          failure: `${baseUrl}/checkout/error`,
-          pending: `${baseUrl}/checkout/success?type=${type}&status=pending`,
-        },
-        auto_return: 'approved',
-        external_reference: externalRef,
-        notification_url: `${baseUrl}/api/zeus/payments/webhook`,
-      }
+    const order = await createZeleriOrder({
+      title:       item_name,
+      description: type === 'service' && date && slot
+        ? `Reserva para el ${date} a las ${slot}`
+        : `Pago por ${item_name}`,
+      amount:      sanitizedAmount,
+      customer:    { email: client_email, name: client_name },
+      successUrl:  `${baseUrl}/checkout/success?type=${type}&status=approved&product_id=${encodeURIComponent(item_id)}`,
+      failureUrl:  `${baseUrl}/checkout/error`,
+      commerceOrder:     item_id,
+      commerceReference: client_email,
     });
 
     return NextResponse.json({
-      success: true,
-      payment_url: response.init_point,
+      success:     true,
+      payment_url: order.data.url,
+      order_id:    order.data.order_id,
     });
 
   } catch (error: any) {
-    const msg = error?.message || error?.cause?.message || 'Error desconocido';
-    console.error('[Checkout] Error:', msg);
+    const msg = error?.message || 'Error desconocido';
+    console.error('[Checkout Zeleri] Error:', msg);
     return NextResponse.json({ error: msg }, { status: 500 });
   }
 }
