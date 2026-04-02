@@ -77,16 +77,16 @@ export default function ZeleriPayModal({
 
   const readNormalizedForm = useCallback(() => {
     const fallback = {
-      name: form.name,
-      email: form.email,
-      phone: form.phone,
+      name: (prefillName || form.name || '').trim(),
+      email: (prefillEmail || form.email || '').trim().toLowerCase(),
+      phone: (prefillPhone || form.phone || '').trim(),
     };
 
     if (!formRef.current) {
       return {
-        name: fallback.name.trim(),
-        email: fallback.email.trim().toLowerCase(),
-        phone: fallback.phone.trim(),
+        name: fallback.name,
+        email: fallback.email,
+        phone: fallback.phone,
       };
     }
 
@@ -96,7 +96,7 @@ export default function ZeleriPayModal({
     const phone = String(values.get('customer_phone') ?? fallback.phone).trim();
 
     return { name, email, phone };
-  }, [form.email, form.name, form.phone]);
+  }, [form.email, form.name, form.phone, prefillEmail, prefillName, prefillPhone]);
 
   // Resetear al abrir/cerrar
   useEffect(() => {
