@@ -97,7 +97,7 @@ export interface ZeleriOrderParams {
   title: string;
   description: string;
   amount: number;                          // CLP (mínimo 1000, máximo 7000000)
-  customer: { email: string; name: string };
+  customer: { email: string; name: string; phone?: string };
   successUrl: string;
   failureUrl: string;
   commerceOrder?: string;                  // Referencia interna del comercio
@@ -146,7 +146,11 @@ export async function createZeleriOrder(params: ZeleriOrderParams): Promise<Zele
     description: params.description,
     currency_id: 1,           // CLP
     amount:      params.amount,
-    customer:    params.customer,
+    customer:    {
+      email: params.customer.email,
+      name: params.customer.name,
+      phone: params.customer.phone || '',
+    },
     success_url: params.successUrl,
     failure_url: params.failureUrl,
     gateway_id:  params.gatewayId  ?? 4,

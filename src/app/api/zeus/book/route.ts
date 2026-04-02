@@ -137,7 +137,7 @@ export async function POST(request: Request) {
         title:       `Reserva: ${service_name}`,
         description: `Servicio agendado para el ${date} a las ${slot}`,
         amount:      sanitizedAmount,
-        customer:    { email: client_email, name: client_name },
+        customer:    { email: client_email, name: client_name, phone: client_whatsapp || '' },
         successUrl:  `${baseUrl}/checkout/success?booking_id=${booking.id}`,
         failureUrl:  `${baseUrl}/agenda?status=failure`,
       });

@@ -76,7 +76,11 @@ export async function POST(request: Request) {
         ? `Reserva para el ${date} a las ${slot}`
         : `Pago por ${item_name}`,
       amount:      sanitizedAmount,
-      customer:    { email: client_email, name: client_name },
+      customer:    {
+        email: client_email,
+        name: client_name,
+        phone: metadata?.client_whatsapp || '',
+      },
       successUrl:  `${baseUrl}/checkout/success?type=${type}&status=approved&product_id=${encodeURIComponent(item_id)}&client_email=${encodeURIComponent(client_email)}`,
       failureUrl:  `${baseUrl}/checkout/error`,
       commerceOrder:     item_id,
