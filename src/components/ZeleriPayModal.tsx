@@ -56,6 +56,7 @@ export default function ZeleriPayModal({
   prefillPhone,
 }: ZeleriPayModalProps) {
   const formRef = useRef<HTMLFormElement | null>(null);
+  const autoEnrollTriggeredRef = useRef(false);
 
   // Si vienen los tres datos pre-cargados, ir directo a enrolling
   const hasAllPrefill = !!(prefillName && prefillEmail && prefillPhone);
@@ -99,6 +100,7 @@ export default function ZeleriPayModal({
   // Resetear al abrir/cerrar
   useEffect(() => {
     if (isOpen) {
+      autoEnrollTriggeredRef.current = false;
       setStep(hasAllPrefill ? 'enrolling' : 'form');
       setEnrollUrl(null);
       setBookingId(null);
@@ -204,11 +206,12 @@ export default function ZeleriPayModal({
 
   // Auto-iniciar si ya vienen todos los datos
   useEffect(() => {
-    if (isOpen && hasAllPrefill && step === 'enrolling' && !enrollUrl) {
+    if (isOpen && hasAllPrefill && !autoEnrollTriggeredRef.current) {
+      autoEnrollTriggeredRef.current = true;
       handleStartEnroll();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isOpen, hasAllPrefill, step, enrollUrl]);
+  }, [isOpen, hasAllPrefill]);
 
   // ---- Paso 2: Usuario terminó de ingresar tarjeta → buscar card_id ----
   const handleCardReady = useCallback(async () => {
@@ -425,6 +428,12 @@ export default function ZeleriPayModal({
                           {bookingId && (
                             <p className="text-[10px] text-white/20">Reserva temporal #{bookingId}</p>
                           )}
+                          <button
+                            onClick={handleStartEnroll}
+                            className="mt-3 text-[10px] uppercase tracking-widest font-black text-[#0EA5E9] hover:text-white transition-colors"
+                          >
+                            Reintentar conexión
+                          </button>
                         </div>
                       </div>
                     )}
