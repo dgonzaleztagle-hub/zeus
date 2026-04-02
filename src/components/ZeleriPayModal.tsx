@@ -155,9 +155,13 @@ export default function ZeleriPayModal({
     setStep('enrolling');
 
     try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 15000);
+
       const res = await fetch('/api/zeus/enroll', {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
+        signal: controller.signal,
         body:    JSON.stringify({
           customer_name:  name,
           customer_email: email,
@@ -170,15 +174,21 @@ export default function ZeleriPayModal({
           slot,
         }),
       });
+      clearTimeout(timeoutId);
 
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Error al iniciar el pago');
+      if (!data.url_enrollment) {
+        throw new Error('Zeleri no devolvió una URL de enrolamiento válida.');
+      }
 
       setEnrollUrl(data.url_enrollment);
       setBookingId(data.booking_id || null);
 
     } catch (err: any) {
-      const message = err.message || 'Error al conectar con Zeleri';
+      const message = err.name === 'AbortError'
+        ? 'Zeleri tardó demasiado en responder. Reintenta en unos segundos.'
+        : (err.message || 'Error al conectar con Zeleri');
       if (message.toLowerCase().includes('ya no está disponible')) {
         setErrorMsg('Ya existe una operación pendiente para este recurso. Espera un momento o recarga antes de reintentar.');
       } else {
