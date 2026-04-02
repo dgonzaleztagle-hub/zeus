@@ -7,12 +7,19 @@
 
 import crypto from 'crypto';
 
-const ZELERI_BASE_URL = (
-  process.env.ZELERI_BASE_URL || 'https://sandbox-zeleri.dev.ionix.cl/integration-kit'
-).trim().replace(/\/+$/, '');
+function sanitizeEnv(value: string | undefined, fallback = '') {
+  const raw = (value ?? fallback).trim();
+  const withoutWrappingQuotes = raw.replace(/^['"]+|['"]+$/g, '');
+  return withoutWrappingQuotes.trim();
+}
 
-const ZELERI_TOKEN  = (process.env.ZELERI_TOKEN  || '').trim();
-const ZELERI_SECRET = (process.env.ZELERI_SECRET || '').trim();
+const ZELERI_BASE_URL = sanitizeEnv(
+  process.env.ZELERI_BASE_URL,
+  'https://sandbox-zeleri.dev.ionix.cl/integration-kit'
+).replace(/\/+$/, '');
+
+const ZELERI_TOKEN = sanitizeEnv(process.env.ZELERI_TOKEN);
+const ZELERI_SECRET = sanitizeEnv(process.env.ZELERI_SECRET);
 
 /**
  * Genera la firma HMAC-SHA256 requerida por Zeleri.

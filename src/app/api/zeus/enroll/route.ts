@@ -16,6 +16,9 @@ const supabase = createClient(
  * 3. Devuelve url_enrollment (iframe) y booking_id (si aplica).
  */
 export async function POST(request: Request) {
+  let bookingId: string | null = null;
+  let shouldCleanupPendingBooking = false;
+
   try {
     const body = await request.json();
     const {
@@ -41,45 +44,69 @@ export async function POST(request: Request) {
     }
 
     // ---- Reserva (solo servicios) ----
-    let bookingId: string | null = null;
-
     if (type === 'service') {
       if (!date || !slot) {
         return NextResponse.json({ error: 'Fecha y hora requeridas para servicios' }, { status: 400 });
       }
 
       // Verificar disponibilidad
+      const normalizedEmail = customer_email.toLowerCase();
+
       const { data: existing } = await supabase
         .from('zeus_bookings')
-        .select('id')
+        .select('id, payment_status, client_email, payment_id')
         .eq('booking_date', date)
         .eq('booking_slot', slot)
         .in('payment_status', ['paid', 'pending'])
-        .limit(1);
+        .order('created_at', { ascending: false });
 
-      if (existing && existing.length > 0) {
+      const paidBooking = existing?.find((booking) => booking.payment_status === 'paid');
+      if (paidBooking) {
         return NextResponse.json({ error: 'El horario ya no está disponible' }, { status: 409 });
       }
 
-      const { data: booking, error: bookingError } = await supabase
-        .from('zeus_bookings')
-        .insert({
-          service_id:      item_id   || null,
-          service_name:    item_name || null,
-          amount:          Number(amount),
-          client_name:     customer_name.trim(),
-          client_email:    customer_email.toLowerCase(),
-          client_whatsapp: customer_phone || null,
-          booking_date:    date,
-          booking_slot:    slot,
-          payment_status:  'pending',
-          payment_method:  'zeleri_enrollment',
-        })
-        .select()
-        .single();
+      const reusablePending = existing?.find((booking) =>
+        booking.payment_status === 'pending' &&
+        booking.client_email?.toLowerCase() === normalizedEmail &&
+        !booking.payment_id
+      );
 
-      if (bookingError) throw bookingError;
-      bookingId = booking.id;
+      const foreignPending = existing?.find((booking) =>
+        booking.payment_status === 'pending' &&
+        booking.client_email?.toLowerCase() !== normalizedEmail
+      );
+
+      if (foreignPending) {
+        return NextResponse.json({ error: 'El horario ya no está disponible' }, { status: 409 });
+      }
+
+      if (reusablePending) {
+        bookingId = reusablePending.id;
+        shouldCleanupPendingBooking = true;
+      }
+
+      if (!bookingId) {
+        const { data: booking, error: bookingError } = await supabase
+          .from('zeus_bookings')
+          .insert({
+            service_id:      item_id   || null,
+            service_name:    item_name || null,
+            amount:          Number(amount),
+            client_name:     customer_name.trim(),
+            client_email:    normalizedEmail,
+            client_whatsapp: customer_phone || null,
+            booking_date:    date,
+            booking_slot:    slot,
+            payment_status:  'pending',
+            payment_method:  'zeleri_enrollment',
+          })
+          .select()
+          .single();
+
+        if (bookingError) throw bookingError;
+        bookingId = booking.id;
+        shouldCleanupPendingBooking = true;
+      }
     }
 
     // ---- Enrollment en Zeleri ----
@@ -97,6 +124,13 @@ export async function POST(request: Request) {
 
   } catch (error: any) {
     console.error('[Enroll] Error:', error.message);
+    if (bookingId && shouldCleanupPendingBooking) {
+      await supabase
+        .from('zeus_bookings')
+        .delete()
+        .eq('id', bookingId)
+        .eq('payment_status', 'pending');
+    }
     return NextResponse.json({ error: error.message || 'Error interno' }, { status: 500 });
   }
 }

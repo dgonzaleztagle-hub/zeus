@@ -60,7 +60,7 @@ export default function ZeleriPayModal({
   // Si vienen los tres datos pre-cargados, ir directo a enrolling
   const hasAllPrefill = !!(prefillName && prefillEmail && prefillPhone);
 
-  const [step,          setStep]          = useState<ModalStep>(hasAllPrefill ? 'form' : 'form');
+  const [step,          setStep]          = useState<ModalStep>(hasAllPrefill ? 'enrolling' : 'form');
   const [enrollUrl,     setEnrollUrl]     = useState<string | null>(null);
   const [bookingId,     setBookingId]     = useState<string | null>(null);
   const [errorMsg,      setErrorMsg]      = useState<string | null>(null);
@@ -98,7 +98,7 @@ export default function ZeleriPayModal({
   // Resetear al abrir/cerrar
   useEffect(() => {
     if (isOpen) {
-      setStep(hasAllPrefill ? 'form' : 'form');
+      setStep(hasAllPrefill ? 'enrolling' : 'form');
       setEnrollUrl(null);
       setBookingId(null);
       setErrorMsg(null);
@@ -184,11 +184,11 @@ export default function ZeleriPayModal({
 
   // Auto-iniciar si ya vienen todos los datos
   useEffect(() => {
-    if (isOpen && hasAllPrefill && step === 'form') {
+    if (isOpen && hasAllPrefill && step === 'enrolling' && !enrollUrl) {
       handleStartEnroll();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isOpen]);
+  }, [isOpen, hasAllPrefill, step, enrollUrl]);
 
   // ---- Paso 2: Usuario terminó de ingresar tarjeta → buscar card_id ----
   const handleCardReady = useCallback(async () => {
