@@ -65,6 +65,7 @@ export default function ZeleriPayModal({
   const [bookingId,     setBookingId]     = useState<string | null>(null);
   const [errorMsg,      setErrorMsg]      = useState<string | null>(null);
   const [downloadToken, setDownloadToken] = useState<string | null>(null);
+  const [loadingHint,   setLoadingHint]   = useState<string>('Conectando con Zeleri...');
 
   const [form, setForm] = useState({
     name:  prefillName  || '',
@@ -103,6 +104,7 @@ export default function ZeleriPayModal({
       setBookingId(null);
       setErrorMsg(null);
       setDownloadToken(null);
+      setLoadingHint('Conectando con Zeleri...');
       setForm({
         name:  prefillName  || '',
         email: prefillEmail || '',
@@ -153,6 +155,7 @@ export default function ZeleriPayModal({
 
     setErrorMsg(null);
     setStep('enrolling');
+    setLoadingHint('Solicitando formulario seguro...');
 
     try {
       const controller = new AbortController();
@@ -184,6 +187,7 @@ export default function ZeleriPayModal({
 
       setEnrollUrl(data.url_enrollment);
       setBookingId(data.booking_id || null);
+      setLoadingHint('Cargando formulario de tarjeta...');
 
     } catch (err: any) {
       const message = err.name === 'AbortError'
@@ -416,8 +420,11 @@ export default function ZeleriPayModal({
                         <div className="flex flex-col items-center gap-3">
                           <div className="w-10 h-10 border-4 border-[#0EA5E9] border-t-transparent rounded-full animate-spin" />
                           <p className="text-xs text-white/30 uppercase tracking-widest font-black animate-pulse">
-                            Conectando con Zeleri...
+                            {loadingHint}
                           </p>
+                          {bookingId && (
+                            <p className="text-[10px] text-white/20">Reserva temporal #{bookingId}</p>
+                          )}
                         </div>
                       </div>
                     )}
