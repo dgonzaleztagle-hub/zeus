@@ -18,6 +18,12 @@ export interface ZeleriPayModalProps {
 }
 
 type ModalStep = 'form' | 'processing' | 'checkout' | 'error';
+type CheckoutContext = {
+  bookingId?: string;
+  orderId?: string;
+  productId?: string;
+  clientEmail?: string;
+};
 
 export default function ZeleriPayModal({
   isOpen,
@@ -35,6 +41,8 @@ export default function ZeleriPayModal({
   const [step, setStep] = useState<ModalStep>('form');
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [paymentUrl, setPaymentUrl] = useState<string | null>(null);
+  const [checkoutContext, setCheckoutContext] = useState<CheckoutContext | null>(null);
+  const [isRecovering, setIsRecovering] = useState(false);
   const [form, setForm] = useState({
     name: prefillName || '',
     email: prefillEmail || '',
@@ -47,6 +55,8 @@ export default function ZeleriPayModal({
     setStep(hasPrefill ? 'processing' : 'form');
     setErrorMsg(null);
     setPaymentUrl(null);
+    setCheckoutContext(null);
+    setIsRecovering(false);
     setForm({
       name: prefillName || '',
       email: prefillEmail || '',
@@ -136,6 +146,12 @@ export default function ZeleriPayModal({
         );
       }
 
+      setCheckoutContext({
+        bookingId: data.booking_id ? String(data.booking_id) : undefined,
+        orderId: data.order_id ? String(data.order_id) : undefined,
+        productId: type === 'product' ? itemId : undefined,
+        clientEmail: email,
+      });
       setPaymentUrl(data.payment_url);
       setStep('checkout');
     } catch (error: any) {
@@ -157,6 +173,108 @@ export default function ZeleriPayModal({
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hasPrefill, isOpen, type, prefillName, prefillEmail, prefillPhone, step]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    if (step !== 'checkout') return;
+    if (!checkoutContext?.orderId && !checkoutContext?.bookingId) return;
+
+    const context = checkoutContext;
+
+    let cancelled = false;
+
+    async function pollPaymentStatus() {
+      try {
+        if (type === 'service' && context.bookingId) {
+          const res = await fetch(`/api/zeus/payments/verify?booking_id=${context.bookingId}`, {
+            cache: 'no-store',
+          });
+          const data = await res.json();
+
+          if (!cancelled && data.verified) {
+            window.location.href = `/checkout/success?booking_id=${context.bookingId}`;
+          }
+          return;
+        }
+
+        if (type === 'product' && context.orderId && context.productId) {
+          const params = new URLSearchParams({
+            order_id: context.orderId,
+            product_id: context.productId,
+          });
+
+          if (context.clientEmail) {
+            params.set('client_email', context.clientEmail);
+          }
+
+          const res = await fetch(`/api/zeus/payments/verify-product?${params.toString()}`, {
+            cache: 'no-store',
+          });
+          const data = await res.json();
+
+          if (!cancelled && data.verified) {
+            window.location.href = `/checkout/success?type=product&product_id=${encodeURIComponent(context.productId)}&order_id=${encodeURIComponent(context.orderId)}&client_email=${encodeURIComponent(context.clientEmail || '')}`;
+          }
+        }
+      } catch {
+        // Mantener polling silencioso mientras el usuario sigue en checkout.
+      }
+    }
+
+    pollPaymentStatus();
+    const interval = window.setInterval(pollPaymentStatus, 8000);
+
+    return () => {
+      cancelled = true;
+      window.clearInterval(interval);
+    };
+  }, [checkoutContext, isOpen, step, type]);
+
+  async function handleManualRecovery() {
+    if (!checkoutContext) return;
+
+    setIsRecovering(true);
+    try {
+      if (type === 'service' && checkoutContext.bookingId) {
+        const res = await fetch(`/api/zeus/payments/verify?booking_id=${checkoutContext.bookingId}`, {
+          cache: 'no-store',
+        });
+        const data = await res.json();
+
+        if (data.verified) {
+          window.location.href = `/checkout/success?booking_id=${checkoutContext.bookingId}`;
+          return;
+        }
+      }
+
+      if (type === 'product' && checkoutContext.orderId && checkoutContext.productId) {
+        const params = new URLSearchParams({
+          order_id: checkoutContext.orderId,
+          product_id: checkoutContext.productId,
+        });
+
+        if (checkoutContext.clientEmail) {
+          params.set('client_email', checkoutContext.clientEmail);
+        }
+
+        const res = await fetch(`/api/zeus/payments/verify-product?${params.toString()}`, {
+          cache: 'no-store',
+        });
+        const data = await res.json();
+
+        if (data.verified) {
+          window.location.href = `/checkout/success?type=product&product_id=${encodeURIComponent(checkoutContext.productId)}&order_id=${encodeURIComponent(checkoutContext.orderId)}&client_email=${encodeURIComponent(checkoutContext.clientEmail || '')}`;
+          return;
+        }
+      }
+
+      setErrorMsg('Aún no vemos el pago confirmado en Zeleri. Si ya se hizo el cobro, espera unos segundos y vuelve a verificar.');
+    } catch {
+      setErrorMsg('No pudimos verificar el estado del pago en este momento.');
+    } finally {
+      setIsRecovering(false);
+    }
+  }
 
   const handleRetry = () => {
     setErrorMsg(null);
@@ -321,12 +439,30 @@ export default function ZeleriPayModal({
                       allow="payment *"
                     />
                   </div>
-                  <button
-                    onClick={handleRetry}
-                    className="w-full py-3 rounded-xl border border-white/10 text-sm font-bold text-white/60 hover:text-white transition-all"
-                  >
-                    Recargar checkout
-                  </button>
+                  <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 space-y-3">
+                    <p className="text-xs text-white/50 leading-relaxed">
+                      Si el cobro se realizó pero el flujo no avanza, Zeus intentará confirmarlo automáticamente. También puedes forzar una verificación manual sin cerrar esta ventana.
+                    </p>
+                    {errorMsg && (
+                      <p className="text-xs text-red-400 font-semibold">{errorMsg}</p>
+                    )}
+                    <div className="grid gap-3">
+                      <button
+                        onClick={handleManualRecovery}
+                        disabled={isRecovering}
+                        className="w-full py-3 rounded-xl font-bold text-sm transition-all disabled:opacity-60"
+                        style={{ background: 'linear-gradient(135deg, #0EA5E9, #00D4FF)', color: '#0A0A0F' }}
+                      >
+                        {isRecovering ? 'Verificando pago...' : 'Ya pagué, verificar ahora'}
+                      </button>
+                      <button
+                        onClick={handleRetry}
+                        className="w-full py-3 rounded-xl border border-white/10 text-sm font-bold text-white/60 hover:text-white transition-all"
+                      >
+                        Recargar checkout
+                      </button>
+                    </div>
+                  </div>
                 </motion.div>
               )}
 

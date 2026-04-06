@@ -128,6 +128,7 @@ export async function POST(request: Request) {
 
     // 4. Si no es simulación, crear orden en Zeleri
     let paymentUrl = null;
+    let zeleriOrderId: number | null = null;
     if (!isSimulated && sanitizedAmount > 0) {
       const host     = request.headers.get('host') || 'asesoriaszeus.cl';
       const protocol = host.includes('localhost') ? 'http' : 'https';
@@ -143,17 +144,19 @@ export async function POST(request: Request) {
       });
 
       paymentUrl = zeleriOrder.data.url;
+      zeleriOrderId = zeleriOrder.data.order_id;
 
       // Guardar el order_id de Zeleri en la reserva para verificación posterior
       await supabase
         .from('zeus_bookings')
-        .update({ payment_id: zeleriOrder.data.order_id.toString() })
+        .update({ payment_id: zeleriOrderId.toString() })
         .eq('id', booking.id);
     }
 
     return NextResponse.json({
       success:     true,
       booking_id:  booking.id,
+      order_id:    zeleriOrderId,
       payment_url: paymentUrl,
       message:     isSimulated
         ? 'Reserva aprobada (simulación)'
