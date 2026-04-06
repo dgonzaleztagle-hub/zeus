@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 import { NextResponse } from 'next/server';
 import { createZeleriOrder } from '@/lib/zeleri';
+import { reconcileAndClassifyBookings } from '@/lib/booking-locks';
 
 // =============================================================================
 // MERCADOPAGO — comentado, conservado para eventual reactivación
@@ -89,14 +90,14 @@ export async function POST(request: Request) {
     // 2. Verificar disponibilidad
     const { data: existing, error: checkError } = await supabase
       .from('zeus_bookings')
-      .select('id')
+      .select('id, payment_status, payment_id, created_at')
       .eq('booking_date', date)
       .eq('booking_slot', slot)
-      .in('payment_status', ['paid', 'pending'])
-      .limit(1);
+      .in('payment_status', ['paid', 'pending']);
 
     if (checkError) throw checkError;
-    if (existing && existing.length > 0) {
+    const { blocking } = await reconcileAndClassifyBookings(supabase, existing || []);
+    if (blocking.length > 0) {
       return NextResponse.json({ error: 'El horario ya no está disponible' }, { status: 409 });
     }
 

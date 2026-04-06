@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { createZeleriEnrollment } from '@/lib/zeleri';
+import { reconcileAndClassifyBookings } from '@/lib/booking-locks';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_ZEUS_SUPABASE_URL!,
@@ -59,24 +60,26 @@ export async function POST(request: Request) {
 
       const { data: existing } = await supabase
         .from('zeus_bookings')
-        .select('id, payment_status, client_email, payment_id')
+        .select('id, payment_status, client_email, payment_id, created_at')
         .eq('booking_date', date)
         .eq('booking_slot', slot)
         .in('payment_status', ['paid', 'pending'])
         .order('created_at', { ascending: false });
 
-      const paidBooking = existing?.find((booking) => booking.payment_status === 'paid');
+      const { blocking } = await reconcileAndClassifyBookings(supabase, existing || []);
+
+      const paidBooking = blocking.find((booking) => booking.payment_status === 'paid');
       if (paidBooking) {
         return NextResponse.json({ error: 'El horario ya no está disponible' }, { status: 409 });
       }
 
-      const reusablePending = existing?.find((booking) =>
+      const reusablePending = blocking.find((booking) =>
         booking.payment_status === 'pending' &&
         booking.client_email?.toLowerCase() === normalizedEmail &&
         !booking.payment_id
       );
 
-      const foreignPending = existing?.find((booking) =>
+      const foreignPending = blocking.find((booking) =>
         booking.payment_status === 'pending' &&
         booking.client_email?.toLowerCase() !== normalizedEmail
       );

@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import { NextResponse } from 'next/server';
+import { reconcileAndClassifyBookings } from '@/lib/booking-locks';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_ZEUS_SUPABASE_URL!,
@@ -45,15 +46,15 @@ export async function GET(request: Request) {
       return NextResponse.json({ slots: [] });
     }
 
-    // 4. Obtener reservas activas: paid siempre, pending solo si son recientes (< 30 min)
-    const thirtyMinAgo = new Date(Date.now() - 30 * 60 * 1000).toISOString();
+    // 4. Obtener reservas del dia y reconciliar pending expirados antes de filtrar
     const { data: bookings } = await supabase
       .from('zeus_bookings')
-      .select('booking_slot')
+      .select('id, booking_slot, payment_status, payment_id, created_at')
       .eq('booking_date', date)
-      .or(`payment_status.eq.paid,and(payment_status.eq.pending,created_at.gt.${thirtyMinAgo})`);
+      .in('payment_status', ['paid', 'pending']);
 
-    const bookedSlots = bookings?.map(b => b.booking_slot) || [];
+    const { blocking } = await reconcileAndClassifyBookings(supabase, bookings || []);
+    const bookedSlots = blocking.map((b) => b.booking_slot).filter(Boolean) || [];
 
     // 5. Filtrar la disponibilidad final
     const finalSlots = availableSlots.filter(
