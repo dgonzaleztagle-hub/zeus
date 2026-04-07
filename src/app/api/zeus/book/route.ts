@@ -1,6 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import { NextResponse } from 'next/server';
-import { createMercadoPagoServicePreference } from '@/lib/mercadopago';
+import { getServiceExternalReference } from '@/lib/payments';
 import { createZeleriOrder } from '@/lib/zeleri';
 import { reconcileAndClassifyBookings } from '@/lib/booking-locks';
 import { getActivePaymentProvider, getPaymentMode } from '@/lib/payments';
@@ -125,9 +125,13 @@ export async function POST(request: Request) {
         payment_method:   isSimulated
           ? 'simulated'
           : PAYMENT_PROVIDER === 'mercadopago'
-            ? 'mercadopago_checkout_pro'
+            ? 'mercadopago_api'
             : 'zeleri',
-        notes:            isSimulated ? 'Pago simulado aprobado' : null,
+        notes:            isSimulated
+          ? 'Pago simulado aprobado'
+          : PAYMENT_PROVIDER === 'mercadopago'
+            ? `Checkout API Mercado Pago inicializado - reference: ${getServiceExternalReference(String(service_id || ''))}`
+            : null,
       })
       .select()
       .single();
@@ -144,25 +148,10 @@ export async function POST(request: Request) {
       const baseUrl  = `${protocol}://${host}`;
 
       if (PAYMENT_PROVIDER === 'mercadopago') {
-        const preference = await createMercadoPagoServicePreference({
-          bookingId: String(booking.id),
-          serviceName: service_name,
-          amount: sanitizedAmount,
-          clientName: client_name,
-          clientEmail: client_email,
-          clientWhatsapp: client_whatsapp || null,
-          baseUrl,
-        });
-
-        paymentUrl = preference.init_point || preference.sandbox_init_point || null;
-        mercadopagoPreferenceId = preference.id || null;
-
         await supabase
           .from('zeus_bookings')
           .update({
-            notes: mercadopagoPreferenceId
-              ? `Preferencia Mercado Pago creada - preference_id: ${mercadopagoPreferenceId}`
-              : 'Preferencia Mercado Pago creada',
+            notes: `Checkout API Mercado Pago listo para tokenizar - booking_id: ${booking.id}`,
           })
           .eq('id', booking.id);
       } else {

@@ -46,7 +46,7 @@ export async function GET(request: Request) {
       return NextResponse.json({ verified: true, status: 'paid' });
     }
 
-    if (booking.payment_method === 'mercadopago_checkout_pro') {
+    if (booking.payment_method === 'mercadopago_checkout_pro' || booking.payment_method === 'mercadopago_api') {
       const paymentIdFromQuery = searchParams.get('payment_id');
       const payment = paymentIdFromQuery
         ? await getMercadoPagoPayment(paymentIdFromQuery)

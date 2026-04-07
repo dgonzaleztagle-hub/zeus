@@ -1,5 +1,4 @@
 import { NextResponse } from 'next/server';
-import { createMercadoPagoProductPreference } from '@/lib/mercadopago';
 import { getActivePaymentProvider, getPaymentMode } from '@/lib/payments';
 import { createZeleriOrder } from '@/lib/zeleri';
 
@@ -74,22 +73,12 @@ export async function POST(request: Request) {
     const provider = getActivePaymentProvider();
 
     if (provider === 'mercadopago') {
-      const preference = await createMercadoPagoProductPreference({
-        productId: item_id,
-        itemName: item_name,
-        amount: sanitizedAmount,
-        clientName: client_name,
-        clientEmail: client_email,
-        clientWhatsapp: metadata?.client_whatsapp || '',
-        baseUrl,
-      });
-
       return NextResponse.json({
         success: true,
         payment_provider: provider,
         payment_mode: getPaymentMode(provider),
-        payment_url: preference.init_point || preference.sandbox_init_point,
-        order_id: preference.id || null,
+        payment_url: null,
+        order_id: null,
       });
     }
 

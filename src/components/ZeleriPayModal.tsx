@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 export interface ZeleriPayModalProps {
@@ -18,14 +18,51 @@ export interface ZeleriPayModalProps {
 }
 
 type ModalStep = 'form' | 'processing' | 'checkout' | 'error';
+type PaymentMode = 'iframe' | 'redirect' | 'embedded';
 type CheckoutContext = {
   bookingId?: string;
   orderId?: string;
   productId?: string;
   clientEmail?: string;
   paymentProvider?: string;
-  paymentMode?: 'iframe' | 'redirect';
+  paymentMode?: PaymentMode;
 };
+
+declare global {
+  interface Window {
+    MercadoPago?: new (publicKey: string, options?: Record<string, any>) => any;
+  }
+}
+
+const MERCADOPAGO_PUBLIC_KEY = process.env.NEXT_PUBLIC_MERCADOPAGO_PUBLIC_KEY || '';
+const MERCADOPAGO_SCRIPT_SRC = 'https://sdk.mercadopago.com/js/v2';
+
+function loadMercadoPagoSdk() {
+  if (typeof window === 'undefined') {
+    return Promise.reject(new Error('Mercado Pago solo puede cargarse en el navegador.'));
+  }
+
+  if (window.MercadoPago) {
+    return Promise.resolve();
+  }
+
+  const existing = document.querySelector<HTMLScriptElement>(`script[src="${MERCADOPAGO_SCRIPT_SRC}"]`);
+  if (existing) {
+    return new Promise<void>((resolve, reject) => {
+      existing.addEventListener('load', () => resolve(), { once: true });
+      existing.addEventListener('error', () => reject(new Error('No pudimos cargar el SDK de Mercado Pago.')), { once: true });
+    });
+  }
+
+  return new Promise<void>((resolve, reject) => {
+    const script = document.createElement('script');
+    script.src = MERCADOPAGO_SCRIPT_SRC;
+    script.async = true;
+    script.onload = () => resolve();
+    script.onerror = () => reject(new Error('No pudimos cargar el SDK de Mercado Pago.'));
+    document.head.appendChild(script);
+  });
+}
 
 export default function ZeleriPayModal({
   isOpen,
@@ -45,12 +82,72 @@ export default function ZeleriPayModal({
   const [paymentUrl, setPaymentUrl] = useState<string | null>(null);
   const [checkoutContext, setCheckoutContext] = useState<CheckoutContext | null>(null);
   const [isRecovering, setIsRecovering] = useState(false);
+  const [sdkReady, setSdkReady] = useState(false);
+  const [sdkLoading, setSdkLoading] = useState(false);
+  const [embeddedReady, setEmbeddedReady] = useState(false);
+  const [isSubmittingEmbedded, setIsSubmittingEmbedded] = useState(false);
+  const [cardholderName, setCardholderName] = useState(prefillName || '');
+  const [identificationNumber, setIdentificationNumber] = useState('');
+  const [paymentMethodId, setPaymentMethodId] = useState('');
   const [form, setForm] = useState({
     name: prefillName || '',
     email: prefillEmail || '',
     phone: prefillPhone || '',
   });
+
+  const mpRef = useRef<any>(null);
+  const cardNumberFieldRef = useRef<any>(null);
+  const securityCodeFieldRef = useRef<any>(null);
+  const currentBinRef = useRef<string>('');
+
   const hasPrefill = useMemo(() => Boolean(prefillName && prefillEmail), [prefillEmail, prefillName]);
+  const fieldIds = useMemo(() => ({
+    cardNumber: 'zeus-mp-card-number',
+    expirationDate: 'zeus-mp-expiration-date',
+    securityCode: 'zeus-mp-security-code',
+    issuer: 'zeus-mp-issuer',
+    installments: 'zeus-mp-installments',
+    identificationType: 'zeus-mp-identification-type',
+    email: 'zeus-mp-email',
+  }), []);
+
+  function clearSelect(element: HTMLSelectElement, placeholder: string) {
+    element.options.length = 0;
+    const option = document.createElement('option');
+    option.textContent = placeholder;
+    option.disabled = true;
+    option.selected = true;
+    element.appendChild(option);
+  }
+
+  function fillSelect(
+    element: HTMLSelectElement,
+    options: Array<Record<string, any>>,
+    labelsAndKeys: { label: string; value: string } = { label: 'name', value: 'id' },
+  ) {
+    element.options.length = 0;
+
+    options.forEach((option) => {
+      const item = document.createElement('option');
+      item.value = String(option[labelsAndKeys.value] ?? '');
+      item.textContent = String(option[labelsAndKeys.label] ?? '');
+      element.appendChild(item);
+    });
+  }
+
+  function resetEmbeddedState() {
+    setSdkReady(false);
+    setSdkLoading(false);
+    setEmbeddedReady(false);
+    setIsSubmittingEmbedded(false);
+    setIdentificationNumber('');
+    setPaymentMethodId('');
+    setCardholderName(prefillName || '');
+    currentBinRef.current = '';
+    mpRef.current = null;
+    cardNumberFieldRef.current = null;
+    securityCodeFieldRef.current = null;
+  }
 
   useEffect(() => {
     if (!isOpen) return;
@@ -59,6 +156,7 @@ export default function ZeleriPayModal({
     setPaymentUrl(null);
     setCheckoutContext(null);
     setIsRecovering(false);
+    resetEmbeddedState();
     setForm({
       name: prefillName || '',
       email: prefillEmail || '',
@@ -78,7 +176,7 @@ export default function ZeleriPayModal({
     }
 
     if (amount < 1000) {
-      setErrorMsg('Zeleri solo permite pagos desde $1.000 CLP');
+      setErrorMsg('Mercado Pago solo permite pagos desde $1.000 CLP');
       setStep('error');
       return;
     }
@@ -129,10 +227,6 @@ export default function ZeleriPayModal({
         throw new Error(data.error || 'No se pudo iniciar el checkout');
       }
 
-      if (!data.payment_url) {
-        throw new Error('Zeleri no devolvió una URL de pago válida.');
-      }
-
       if (type === 'product') {
         window.sessionStorage.setItem(
           'zeus_pending_checkout',
@@ -156,7 +250,8 @@ export default function ZeleriPayModal({
         paymentProvider: data.payment_provider || 'zeleri',
         paymentMode: data.payment_mode || 'iframe',
       });
-      setPaymentUrl(data.payment_url);
+      setPaymentUrl(data.payment_url || null);
+      setCardholderName(name);
       setStep('checkout');
     } catch (error: any) {
       setErrorMsg(error.message || 'Error al iniciar el pago');
@@ -189,11 +284,10 @@ export default function ZeleriPayModal({
   useEffect(() => {
     if (!isOpen) return;
     if (step !== 'checkout') return;
-    if (checkoutContext?.paymentMode === 'redirect') return;
+    if (checkoutContext?.paymentMode !== 'iframe') return;
     if (!checkoutContext?.orderId && !checkoutContext?.bookingId) return;
 
     const context = checkoutContext;
-
     let cancelled = false;
 
     async function pollPaymentStatus() {
@@ -230,7 +324,7 @@ export default function ZeleriPayModal({
           }
         }
       } catch {
-        // Mantener polling silencioso mientras el usuario sigue en checkout.
+        // Mantener polling silencioso.
       }
     }
 
@@ -242,6 +336,143 @@ export default function ZeleriPayModal({
       window.clearInterval(interval);
     };
   }, [checkoutContext, isOpen, step, type]);
+
+  useEffect(() => {
+    if (!isOpen || step !== 'checkout') return;
+    if (checkoutContext?.paymentProvider !== 'mercadopago') return;
+    if (checkoutContext?.paymentMode !== 'embedded') return;
+
+    let cancelled = false;
+
+    async function initMercadoPagoForm() {
+      try {
+        if (!MERCADOPAGO_PUBLIC_KEY) {
+          throw new Error('NEXT_PUBLIC_MERCADOPAGO_PUBLIC_KEY no está configurado.');
+        }
+
+        setSdkLoading(true);
+        await loadMercadoPagoSdk();
+
+        if (cancelled) return;
+
+        const mp = new window.MercadoPago!(MERCADOPAGO_PUBLIC_KEY, {
+          locale: 'es-CL',
+        });
+        mpRef.current = mp;
+
+        const issuerElement = document.getElementById(fieldIds.issuer) as HTMLSelectElement | null;
+        const installmentsElement = document.getElementById(fieldIds.installments) as HTMLSelectElement | null;
+        const identificationTypeElement = document.getElementById(fieldIds.identificationType) as HTMLSelectElement | null;
+        if (!issuerElement || !installmentsElement || !identificationTypeElement) {
+          throw new Error('No pudimos preparar el formulario de pago.');
+        }
+
+        clearSelect(issuerElement, 'Banco emisor');
+        clearSelect(installmentsElement, 'Cuotas');
+        clearSelect(identificationTypeElement, 'Tipo de documento');
+
+        cardNumberFieldRef.current = mp.fields.create('cardNumber', {
+          placeholder: 'Número de tarjeta',
+        }).mount(fieldIds.cardNumber);
+
+        mp.fields.create('expirationDate', {
+          placeholder: 'MM/AA',
+        }).mount(fieldIds.expirationDate);
+
+        securityCodeFieldRef.current = mp.fields.create('securityCode', {
+          placeholder: 'CVV',
+        }).mount(fieldIds.securityCode);
+
+        const identificationTypes = await mp.getIdentificationTypes();
+        if (!cancelled) {
+          fillSelect(identificationTypeElement, identificationTypes || []);
+        }
+
+        cardNumberFieldRef.current.on('binChange', async ({ bin }: { bin?: string }) => {
+          if (cancelled) return;
+
+          try {
+            if (!bin && currentBinRef.current) {
+              currentBinRef.current = '';
+              setPaymentMethodId('');
+              clearSelect(issuerElement, 'Banco emisor');
+              clearSelect(installmentsElement, 'Cuotas');
+              return;
+            }
+
+            if (!bin || bin === currentBinRef.current) {
+              return;
+            }
+
+            const { results } = await mp.getPaymentMethods({ bin });
+            const paymentMethod = results?.[0];
+            if (!paymentMethod) return;
+
+            setPaymentMethodId(String(paymentMethod.id || ''));
+
+            const cardNumberSettings = paymentMethod.settings?.[0]?.card_number;
+            if (cardNumberSettings && cardNumberFieldRef.current?.update) {
+              cardNumberFieldRef.current.update({ settings: cardNumberSettings });
+            }
+
+            const securityCodeSettings = paymentMethod.settings?.[0]?.security_code;
+            if (securityCodeSettings && securityCodeFieldRef.current?.update) {
+              securityCodeFieldRef.current.update({ settings: securityCodeSettings });
+            }
+
+            const additionalInfoNeeded = paymentMethod.additional_info_needed || [];
+            if (additionalInfoNeeded.includes('issuer_id')) {
+              const issuers = await mp.getIssuers({
+                paymentMethodId: paymentMethod.id,
+                bin,
+              });
+              fillSelect(issuerElement, issuers || []);
+            } else if (paymentMethod.issuer) {
+              fillSelect(issuerElement, [paymentMethod.issuer]);
+            } else {
+              clearSelect(issuerElement, 'Banco emisor');
+            }
+
+            const installments = await mp.getInstallments({
+              amount,
+              bin,
+              paymentTypeId: paymentMethod.payment_type_id || 'credit_card',
+            });
+            fillSelect(installmentsElement, installments?.[0]?.payer_costs || [], {
+              label: 'recommended_message',
+              value: 'installments',
+            });
+
+            currentBinRef.current = bin;
+          } catch (error) {
+            console.error('[MercadoPagoModal] Error obteniendo BIN info:', error);
+          }
+        });
+
+        if (!cancelled) {
+          setSdkReady(true);
+          setEmbeddedReady(true);
+          setErrorMsg(null);
+        }
+      } catch (error: any) {
+        if (!cancelled) {
+          setErrorMsg(error.message || 'No se pudo cargar el formulario de Mercado Pago.');
+        }
+      } finally {
+        if (!cancelled) {
+          setSdkLoading(false);
+        }
+      }
+    }
+
+    initMercadoPagoForm();
+
+    return () => {
+      cancelled = true;
+      setEmbeddedReady(false);
+      currentBinRef.current = '';
+    };
+  }, [amount, checkoutContext?.paymentMode, checkoutContext?.paymentProvider, fieldIds, isOpen, step]);
 
   async function handleManualRecovery() {
     if (!checkoutContext) return;
@@ -281,7 +512,7 @@ export default function ZeleriPayModal({
         }
       }
 
-      setErrorMsg('Aún no vemos el pago confirmado en Zeleri. Si ya se hizo el cobro, espera unos segundos y vuelve a verificar.');
+      setErrorMsg('Aún no vemos el pago confirmado. Si ya se hizo el cobro, espera unos segundos y vuelve a verificar.');
     } catch {
       setErrorMsg('No pudimos verificar el estado del pago en este momento.');
     } finally {
@@ -289,9 +520,81 @@ export default function ZeleriPayModal({
     }
   }
 
+  async function handleEmbeddedPaymentSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    if (!mpRef.current) {
+      setErrorMsg('El formulario seguro todavía no está listo.');
+      return;
+    }
+
+    const issuerElement = document.getElementById(fieldIds.issuer) as HTMLSelectElement | null;
+    const installmentsElement = document.getElementById(fieldIds.installments) as HTMLSelectElement | null;
+    const identificationTypeElement = document.getElementById(fieldIds.identificationType) as HTMLSelectElement | null;
+    const emailElement = document.getElementById(fieldIds.email) as HTMLInputElement | null;
+
+    const payerEmail = emailElement?.value?.trim().toLowerCase() || checkoutContext?.clientEmail || form.email.trim().toLowerCase();
+    const selectedInstallments = Number(installmentsElement?.value || 0);
+    const selectedIdentificationType = identificationTypeElement?.value || '';
+
+    if (!payerEmail || !paymentMethodId || !selectedInstallments || !selectedIdentificationType || !identificationNumber.trim() || !cardholderName.trim()) {
+      setErrorMsg('Completa los datos del titular, documento y cuotas antes de continuar.');
+      return;
+    }
+
+    setIsSubmittingEmbedded(true);
+    setErrorMsg(null);
+
+    try {
+      const token = await mpRef.current.fields.createCardToken({
+        cardholderName: cardholderName.trim(),
+        identificationType: selectedIdentificationType,
+        identificationNumber: identificationNumber.trim(),
+      });
+
+      const res = await fetch('/api/zeus/payments/mercadopago/process', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type,
+          booking_id: checkoutContext?.bookingId,
+          product_id: checkoutContext?.productId,
+          item_name: itemName,
+          amount,
+          client_name: cardholderName.trim(),
+          client_email: payerEmail,
+          client_whatsapp: form.phone || null,
+          token: token.id,
+          payment_method_id: paymentMethodId,
+          issuer_id: issuerElement?.value ? Number(issuerElement.value) : null,
+          installments: selectedInstallments,
+          identification_type: selectedIdentificationType,
+          identification_number: identificationNumber.trim(),
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || 'No pudimos procesar el pago.');
+      }
+
+      if (data.status === 'approved' || data.status === 'in_process' || data.status === 'pending') {
+        window.location.href = data.redirect_url;
+        return;
+      }
+
+      throw new Error(data.status_detail || 'El pago fue rechazado. Revisa los datos e inténtalo de nuevo.');
+    } catch (error: any) {
+      setErrorMsg(error.message || 'No pudimos procesar el pago.');
+    } finally {
+      setIsSubmittingEmbedded(false);
+    }
+  }
+
   const handleRetry = () => {
     setErrorMsg(null);
     setPaymentUrl(null);
+    resetEmbeddedState();
     setStep(hasPrefill ? 'processing' : 'form');
   };
 
@@ -322,7 +625,7 @@ export default function ZeleriPayModal({
           <div className="flex items-center justify-between px-8 pt-8 pb-4">
             <div>
               <p className="text-[10px] font-black uppercase tracking-widest text-white/30 mb-1">
-                Pago One Shot
+                Checkout Seguro
               </p>
               <h2 className="text-lg font-black leading-tight">{itemName}</h2>
             </div>
@@ -356,7 +659,7 @@ export default function ZeleriPayModal({
                   }}
                 >
                   <p className="text-sm text-white/40 mb-6">
-                    Te llevaremos al checkout seguro para completar el pago.
+                    Prepararemos un checkout seguro dentro de Zeus para que completes el pago sin salir del sitio.
                   </p>
 
                   <div className="space-y-1">
@@ -407,7 +710,7 @@ export default function ZeleriPayModal({
                     className="w-full h-13 mt-2 py-4 rounded-xl font-bold text-sm transition-all hover:scale-[1.02] active:scale-95"
                     style={{ background: 'linear-gradient(135deg, #0EA5E9, #00D4FF)', color: '#0A0A0F' }}
                   >
-                    Ir a pagar →
+                    Continuar al pago
                   </button>
                 </motion.form>
               )}
@@ -422,17 +725,17 @@ export default function ZeleriPayModal({
                 >
                   <div className="w-12 h-12 border-4 border-[#0EA5E9] border-t-transparent rounded-full animate-spin" />
                   <p className="text-sm font-bold tracking-widest uppercase animate-pulse text-white/50 text-center">
-                    Redirigiendo a checkout seguro...
+                    Preparando checkout...
                   </p>
                   <p className="text-xs text-white/20 text-center">
                     {type === 'service'
-                      ? 'Estamos preparando tu reserva y la orden de pago.'
-                      : 'Estamos preparando tu orden para el checkout seguro.'}
+                      ? 'Estamos dejando tu reserva lista para cobrarla con Mercado Pago.'
+                      : 'Estamos preparando tu compra para cobrarla con Mercado Pago.'}
                   </p>
                 </motion.div>
               )}
 
-              {step === 'checkout' && paymentUrl && (
+              {step === 'checkout' && (
                 <motion.div
                   key="checkout"
                   initial={{ opacity: 0 }}
@@ -440,10 +743,10 @@ export default function ZeleriPayModal({
                   exit={{ opacity: 0 }}
                   className="space-y-4"
                 >
-                  {checkoutContext?.paymentMode === 'redirect' ? (
+                  {checkoutContext?.paymentMode === 'redirect' && paymentUrl ? (
                     <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-6 space-y-4 text-center">
                       <p className="text-sm text-white/40">
-                        Estamos abriendo el checkout seguro de pago.
+                        Estamos abriendo el checkout seguro.
                       </p>
                       <a
                         href={paymentUrl}
@@ -453,7 +756,134 @@ export default function ZeleriPayModal({
                         Ir al pago ahora
                       </a>
                     </div>
-                  ) : (
+                  ) : checkoutContext?.paymentMode === 'embedded' && checkoutContext?.paymentProvider === 'mercadopago' ? (
+                    <form className="space-y-4" onSubmit={handleEmbeddedPaymentSubmit}>
+                      <p className="text-sm text-white/40 text-center">
+                        Completa tu pago con Mercado Pago sin salir de Zeus.
+                      </p>
+
+                      <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 space-y-4">
+                        <div className="space-y-1">
+                          <label className="text-[10px] uppercase tracking-widest text-white/30 font-black">
+                            Titular de la tarjeta
+                          </label>
+                          <input
+                            type="text"
+                            value={cardholderName}
+                            onChange={(e) => setCardholderName(e.target.value)}
+                            className="w-full h-12 bg-white/5 border border-white/10 rounded-xl px-4 text-sm focus:border-[#0EA5E9] outline-none transition-all"
+                            placeholder="Nombre como aparece en la tarjeta"
+                          />
+                        </div>
+
+                        <div className="space-y-1">
+                          <label className="text-[10px] uppercase tracking-widest text-white/30 font-black">
+                            Número de tarjeta
+                          </label>
+                          <div id={fieldIds.cardNumber} className="w-full h-12 bg-white rounded-xl px-4 flex items-center" />
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-3">
+                          <div className="space-y-1">
+                            <label className="text-[10px] uppercase tracking-widest text-white/30 font-black">
+                              Vencimiento
+                            </label>
+                            <div id={fieldIds.expirationDate} className="w-full h-12 bg-white rounded-xl px-4 flex items-center" />
+                          </div>
+                          <div className="space-y-1">
+                            <label className="text-[10px] uppercase tracking-widest text-white/30 font-black">
+                              Código de seguridad
+                            </label>
+                            <div id={fieldIds.securityCode} className="w-full h-12 bg-white rounded-xl px-4 flex items-center" />
+                          </div>
+                        </div>
+ 
+                        <div className="grid grid-cols-2 gap-3">
+                          <div className="space-y-1">
+                            <label className="text-[10px] uppercase tracking-widest text-white/30 font-black">
+                              Banco emisor
+                            </label>
+                            <select id={fieldIds.issuer} className="w-full h-12 bg-white/5 border border-white/10 rounded-xl px-4 text-sm focus:border-[#0EA5E9] outline-none transition-all">
+                              <option>Banco emisor</option>
+                            </select>
+                          </div>
+                          <div className="space-y-1">
+                            <label className="text-[10px] uppercase tracking-widest text-white/30 font-black">
+                              Cuotas
+                            </label>
+                            <select id={fieldIds.installments} className="w-full h-12 bg-white/5 border border-white/10 rounded-xl px-4 text-sm focus:border-[#0EA5E9] outline-none transition-all">
+                              <option>Cuotas</option>
+                            </select>
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-3">
+                          <div className="space-y-1">
+                            <label className="text-[10px] uppercase tracking-widest text-white/30 font-black">
+                              Tipo de documento
+                            </label>
+                            <select id={fieldIds.identificationType} className="w-full h-12 bg-white/5 border border-white/10 rounded-xl px-4 text-sm focus:border-[#0EA5E9] outline-none transition-all">
+                              <option>Tipo de documento</option>
+                            </select>
+                          </div>
+                          <div className="space-y-1">
+                            <label className="text-[10px] uppercase tracking-widest text-white/30 font-black">
+                              Documento
+                            </label>
+                            <input
+                              type="text"
+                              value={identificationNumber}
+                              onChange={(e) => setIdentificationNumber(e.target.value)}
+                              className="w-full h-12 bg-white/5 border border-white/10 rounded-xl px-4 text-sm focus:border-[#0EA5E9] outline-none transition-all"
+                              placeholder="Tu RUT o documento"
+                            />
+                          </div>
+                        </div>
+
+                        <div className="space-y-1">
+                          <label className="text-[10px] uppercase tracking-widest text-white/30 font-black">
+                            Email del comprador
+                          </label>
+                          <input
+                            id={fieldIds.email}
+                            type="email"
+                            defaultValue={checkoutContext.clientEmail || form.email}
+                            className="w-full h-12 bg-white/5 border border-white/10 rounded-xl px-4 text-sm text-white/60"
+                            readOnly
+                          />
+                        </div>
+                      </div>
+
+                      <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 space-y-3">
+                        <p className="text-xs text-white/50 leading-relaxed">
+                          Mercado Pago tokeniza los datos sensibles en el navegador y Zeus solo recibe el token seguro para procesar el cobro.
+                        </p>
+                        {errorMsg && (
+                          <p className="text-xs text-red-400 font-semibold">{errorMsg}</p>
+                        )}
+                        {sdkLoading && (
+                          <p className="text-xs text-white/40">Cargando formulario seguro de Mercado Pago...</p>
+                        )}
+                        <div className="grid gap-3">
+                          <button
+                            type="submit"
+                            disabled={!sdkReady || !embeddedReady || isSubmittingEmbedded}
+                            className="w-full py-3 rounded-xl font-bold text-sm transition-all disabled:opacity-60"
+                            style={{ background: 'linear-gradient(135deg, #0EA5E9, #00D4FF)', color: '#0A0A0F' }}
+                          >
+                            {isSubmittingEmbedded ? 'Procesando pago...' : 'Pagar ahora'}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={handleRetry}
+                            className="w-full py-3 rounded-xl border border-white/10 text-sm font-bold text-white/60 hover:text-white transition-all"
+                          >
+                            Reiniciar checkout
+                          </button>
+                        </div>
+                      </div>
+                    </form>
+                  ) : paymentUrl ? (
                     <>
                       <p className="text-sm text-white/40 text-center">
                         Completa tu pago sin salir de Zeus.
@@ -492,6 +922,10 @@ export default function ZeleriPayModal({
                         </div>
                       </div>
                     </>
+                  ) : (
+                    <div className="rounded-2xl border border-red-500/20 bg-red-500/5 p-4 text-sm text-red-200">
+                      No encontramos una forma válida de continuar el checkout.
+                    </div>
                   )}
                 </motion.div>
               )}

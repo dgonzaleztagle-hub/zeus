@@ -1,4 +1,4 @@
-import { findMercadoPagoPaymentByExternalReference, isMercadoPagoApproved } from '@/lib/mercadopago';
+import { findMercadoPagoPaymentByExternalReference, getMercadoPagoPayment, isMercadoPagoApproved } from '@/lib/mercadopago';
 import { getServiceExternalReference } from '@/lib/payments';
 import { getZeleriOrderDetail, isZeleriPaid } from '@/lib/zeleri';
 
@@ -44,9 +44,11 @@ async function reconcileExpiredPendingBooking(supabase: any, booking: BookingLik
     return booking;
   }
 
-  if (booking.payment_method === 'mercadopago_checkout_pro') {
+  if (booking.payment_method === 'mercadopago_checkout_pro' || booking.payment_method === 'mercadopago_api') {
     try {
-      const payment = await findMercadoPagoPaymentByExternalReference(getServiceExternalReference(booking.id));
+      const payment = booking.payment_id
+        ? await getMercadoPagoPayment(booking.payment_id)
+        : await findMercadoPagoPaymentByExternalReference(getServiceExternalReference(booking.id));
       const remoteStatus = String(payment?.status || 'pending');
 
       if (payment?.id && isMercadoPagoApproved(remoteStatus)) {

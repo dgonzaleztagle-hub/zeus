@@ -21,6 +21,23 @@ export function isMercadoPagoApproved(status: string | null | undefined) {
   return String(status || '').toLowerCase() === 'approved';
 }
 
+function splitClientName(fullName: string) {
+  const trimmed = String(fullName || '').trim();
+  if (!trimmed) {
+    return { firstName: '', lastName: '' };
+  }
+
+  const parts = trimmed.split(/\s+/);
+  if (parts.length === 1) {
+    return { firstName: trimmed, lastName: '' };
+  }
+
+  return {
+    firstName: parts.slice(0, -1).join(' '),
+    lastName: parts.slice(-1).join(' '),
+  };
+}
+
 export async function createMercadoPagoServicePreference(params: {
   bookingId: string;
   serviceName: string;
@@ -98,6 +115,66 @@ export async function createMercadoPagoProductPreference(params: {
   });
 
   return response;
+}
+
+type MercadoPagoCardPaymentParams = {
+  amount: number;
+  description: string;
+  token: string;
+  paymentMethodId: string;
+  installments: number;
+  issuerId?: number | null;
+  clientName: string;
+  clientEmail: string;
+  clientWhatsapp?: string | null;
+  identificationType: string;
+  identificationNumber: string;
+  externalReference: string;
+  notificationUrl?: string;
+  metadata?: Record<string, any>;
+  items?: Array<{
+    id: string;
+    title: string;
+    quantity: number;
+    unit_price: number;
+    category_id?: string;
+  }>;
+};
+
+export async function createMercadoPagoCardPayment(params: MercadoPagoCardPaymentParams) {
+  const payment = new Payment(getClient());
+  const { firstName, lastName } = splitClientName(params.clientName);
+
+  return payment.create({
+    body: {
+      transaction_amount: Number(params.amount),
+      token: params.token,
+      description: params.description,
+      installments: Number(params.installments),
+      payment_method_id: params.paymentMethodId,
+      issuer_id: params.issuerId ? Number(params.issuerId) : undefined,
+      external_reference: params.externalReference,
+      notification_url: params.notificationUrl,
+      metadata: params.metadata,
+      payer: {
+        email: params.clientEmail,
+        first_name: firstName || undefined,
+        last_name: lastName || undefined,
+        phone: params.clientWhatsapp
+          ? { number: params.clientWhatsapp }
+          : undefined,
+        identification: {
+          type: params.identificationType,
+          number: params.identificationNumber,
+        },
+      },
+      additional_info: params.items?.length
+        ? {
+            items: params.items,
+          }
+        : undefined,
+    },
+  });
 }
 
 export async function getMercadoPagoPayment(paymentId: string | number) {
