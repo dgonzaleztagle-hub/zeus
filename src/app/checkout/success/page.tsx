@@ -22,6 +22,7 @@ function SuccessContent() {
   const isPending     = searchParams.get('pending') === 'true';
   const productIdParam = searchParams.get('product_id');
   const orderIdParam = searchParams.get('order_id');
+  const provider = searchParams.get('provider');
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -50,7 +51,11 @@ function SuccessContent() {
     let cancelled = false;
     setVerifying(true);
 
-    fetch(`/api/zeus/payments/verify?booking_id=${bookingId}`)
+    const params = new URLSearchParams({ booking_id: bookingId });
+    const paymentId = searchParams.get('payment_id');
+    if (paymentId) params.set('payment_id', paymentId);
+
+    fetch(`/api/zeus/payments/verify?${params.toString()}`)
       .then(r => r.json())
       .then(data => {
         if (cancelled) return;
@@ -72,7 +77,7 @@ function SuccessContent() {
       });
 
     return () => { cancelled = true; };
-  }, [bookingId, isSimulated, isPending]);
+  }, [bookingId, isSimulated, isPending, searchParams]);
 
   useEffect(() => {
     if (resolvedType !== 'product' || isSimulated || isPending) return;
@@ -113,6 +118,13 @@ function SuccessContent() {
     if (pendingEmail) {
       params.set('client_email', pendingEmail);
     }
+    if (provider) {
+      params.set('provider', provider);
+    }
+    const paymentId = searchParams.get('payment_id');
+    if (paymentId) {
+      params.set('order_id', paymentId);
+    }
 
     fetch(`/api/zeus/payments/verify-product?${params.toString()}`)
       .then(r => r.json())
@@ -140,7 +152,7 @@ function SuccessContent() {
     return () => {
       cancelled = true;
     };
-  }, [isPending, isSimulated, orderIdParam, productIdParam, resolvedType, searchParams]);
+  }, [isPending, isSimulated, orderIdParam, productIdParam, provider, resolvedType, searchParams]);
 
   // Confetti — solo cuando no hay verificación pendiente ni error
   useEffect(() => {

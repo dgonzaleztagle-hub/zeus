@@ -1,5 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 import { NextResponse } from 'next/server';
+import { findMercadoPagoPaymentByExternalReference, getMercadoPagoPayment, isMercadoPagoApproved } from '@/lib/mercadopago';
+import { getServiceExternalReference } from '@/lib/payments';
 import { getZeleriOrderDetail, isZeleriPaid } from '@/lib/zeleri';
 
 const supabase = createClient(
@@ -42,6 +44,38 @@ export async function GET(request: Request) {
     // Si es simulación, confiar sin verificar
     if (booking.payment_method === 'simulated') {
       return NextResponse.json({ verified: true, status: 'paid' });
+    }
+
+    if (booking.payment_method === 'mercadopago_checkout_pro') {
+      const paymentIdFromQuery = searchParams.get('payment_id');
+      const payment = paymentIdFromQuery
+        ? await getMercadoPagoPayment(paymentIdFromQuery)
+        : await findMercadoPagoPaymentByExternalReference(getServiceExternalReference(String(bookingId)));
+
+      const approved = isMercadoPagoApproved(payment?.status);
+
+      if (approved && payment?.id) {
+        const { error: updateError } = await supabase
+          .from('zeus_bookings')
+          .update({
+            payment_status: 'paid',
+            payment_id: String(payment.id),
+            notes: `Pago confirmado por Mercado Pago - payment_id: ${payment.id}`,
+          })
+          .eq('id', bookingId);
+
+        if (updateError) {
+          return NextResponse.json({ error: updateError.message }, { status: 500 });
+        }
+
+        return NextResponse.json({ verified: true, status: 'paid', provider: 'mercadopago' });
+      }
+
+      return NextResponse.json({
+        verified: false,
+        status: String(payment?.status || 'pending'),
+        provider: 'mercadopago',
+      });
     }
 
     // 2. Necesitamos el Zeleri order_id (guardado en payment_id)

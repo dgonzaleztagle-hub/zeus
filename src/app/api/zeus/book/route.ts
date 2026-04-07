@@ -1,7 +1,9 @@
 import { createClient } from '@supabase/supabase-js';
 import { NextResponse } from 'next/server';
+import { createMercadoPagoServicePreference } from '@/lib/mercadopago';
 import { createZeleriOrder } from '@/lib/zeleri';
 import { reconcileAndClassifyBookings } from '@/lib/booking-locks';
+import { getActivePaymentProvider, getPaymentMode } from '@/lib/payments';
 
 // =============================================================================
 // MERCADOPAGO — comentado, conservado para eventual reactivación
@@ -44,6 +46,8 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_ZEUS_SUPABASE_URL!,
   process.env.ZEUS_SUPABASE_SERVICE_ROLE_KEY!
 );
+
+const PAYMENT_PROVIDER = getActivePaymentProvider();
 
 export async function POST(request: Request) {
   try {
@@ -118,8 +122,11 @@ export async function POST(request: Request) {
         booking_date:     date,
         booking_slot:     slot,
         payment_status:   isSimulated ? 'paid' : 'pending',
-        // Mantener etiqueta legacy compatible con la base actual.
-        payment_method:   isSimulated ? 'simulated' : 'mercadopago',
+        payment_method:   isSimulated
+          ? 'simulated'
+          : PAYMENT_PROVIDER === 'mercadopago'
+            ? 'mercadopago_checkout_pro'
+            : 'zeleri',
         notes:            isSimulated ? 'Pago simulado aprobado' : null,
       })
       .select()
@@ -130,34 +137,61 @@ export async function POST(request: Request) {
     // 4. Si no es simulación, crear orden en Zeleri
     let paymentUrl = null;
     let zeleriOrderId: number | null = null;
+    let mercadopagoPreferenceId: string | null = null;
     if (!isSimulated && sanitizedAmount > 0) {
       const host     = request.headers.get('host') || 'asesoriaszeus.cl';
       const protocol = host.includes('localhost') ? 'http' : 'https';
       const baseUrl  = `${protocol}://${host}`;
 
-      const zeleriOrder = await createZeleriOrder({
-        title:       `Reserva: ${service_name}`,
-        description: `Servicio agendado para el ${date} a las ${slot}`,
-        amount:      sanitizedAmount,
-        customer:    { email: client_email, name: client_name, phone: client_whatsapp || '' },
-        successUrl:  `${baseUrl}/checkout/success?booking_id=${booking.id}`,
-        failureUrl:  `${baseUrl}/agenda?status=failure`,
-      });
+      if (PAYMENT_PROVIDER === 'mercadopago') {
+        const preference = await createMercadoPagoServicePreference({
+          bookingId: String(booking.id),
+          serviceName: service_name,
+          amount: sanitizedAmount,
+          clientName: client_name,
+          clientEmail: client_email,
+          clientWhatsapp: client_whatsapp || null,
+          baseUrl,
+        });
 
-      paymentUrl = zeleriOrder.data.url;
-      zeleriOrderId = zeleriOrder.data.order_id;
+        paymentUrl = preference.init_point || preference.sandbox_init_point || null;
+        mercadopagoPreferenceId = preference.id || null;
 
-      // Guardar el order_id de Zeleri en la reserva para verificación posterior
-      await supabase
-        .from('zeus_bookings')
-        .update({ payment_id: zeleriOrderId.toString() })
-        .eq('id', booking.id);
+        await supabase
+          .from('zeus_bookings')
+          .update({
+            notes: mercadopagoPreferenceId
+              ? `Preferencia Mercado Pago creada - preference_id: ${mercadopagoPreferenceId}`
+              : 'Preferencia Mercado Pago creada',
+          })
+          .eq('id', booking.id);
+      } else {
+        const zeleriOrder = await createZeleriOrder({
+          title:       `Reserva: ${service_name}`,
+          description: `Servicio agendado para el ${date} a las ${slot}`,
+          amount:      sanitizedAmount,
+          customer:    { email: client_email, name: client_name, phone: client_whatsapp || '' },
+          successUrl:  `${baseUrl}/checkout/success?booking_id=${booking.id}`,
+          failureUrl:  `${baseUrl}/agenda?status=failure`,
+        });
+
+        paymentUrl = zeleriOrder.data.url;
+        zeleriOrderId = zeleriOrder.data.order_id;
+
+        await supabase
+          .from('zeus_bookings')
+          .update({ payment_id: zeleriOrderId.toString() })
+          .eq('id', booking.id);
+      }
     }
 
     return NextResponse.json({
       success:     true,
       booking_id:  booking.id,
       order_id:    zeleriOrderId,
+      payment_provider: PAYMENT_PROVIDER,
+      payment_mode: getPaymentMode(PAYMENT_PROVIDER),
+      preference_id: mercadopagoPreferenceId,
       payment_url: paymentUrl,
       message:     isSimulated
         ? 'Reserva aprobada (simulación)'

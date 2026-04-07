@@ -23,6 +23,8 @@ type CheckoutContext = {
   orderId?: string;
   productId?: string;
   clientEmail?: string;
+  paymentProvider?: string;
+  paymentMode?: 'iframe' | 'redirect';
 };
 
 export default function ZeleriPayModal({
@@ -151,6 +153,8 @@ export default function ZeleriPayModal({
         orderId: data.order_id ? String(data.order_id) : undefined,
         productId: type === 'product' ? itemId : undefined,
         clientEmail: email,
+        paymentProvider: data.payment_provider || 'zeleri',
+        paymentMode: data.payment_mode || 'iframe',
       });
       setPaymentUrl(data.payment_url);
       setStep('checkout');
@@ -177,6 +181,15 @@ export default function ZeleriPayModal({
   useEffect(() => {
     if (!isOpen) return;
     if (step !== 'checkout') return;
+    if (checkoutContext?.paymentMode === 'redirect' && paymentUrl) {
+      window.location.href = paymentUrl;
+    }
+  }, [checkoutContext?.paymentMode, isOpen, paymentUrl, step]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    if (step !== 'checkout') return;
+    if (checkoutContext?.paymentMode === 'redirect') return;
     if (!checkoutContext?.orderId && !checkoutContext?.bookingId) return;
 
     const context = checkoutContext;
@@ -343,7 +356,7 @@ export default function ZeleriPayModal({
                   }}
                 >
                   <p className="text-sm text-white/40 mb-6">
-                    Te llevaremos al checkout seguro de Zeleri para completar el pago.
+                    Te llevaremos al checkout seguro para completar el pago.
                   </p>
 
                   <div className="space-y-1">
@@ -414,7 +427,7 @@ export default function ZeleriPayModal({
                   <p className="text-xs text-white/20 text-center">
                     {type === 'service'
                       ? 'Estamos preparando tu reserva y la orden de pago.'
-                      : 'Estamos preparando tu orden para el checkout one shot de Zeleri.'}
+                      : 'Estamos preparando tu orden para el checkout seguro.'}
                   </p>
                 </motion.div>
               )}
@@ -427,42 +440,59 @@ export default function ZeleriPayModal({
                   exit={{ opacity: 0 }}
                   className="space-y-4"
                 >
-                  <p className="text-sm text-white/40 text-center">
-                    Completa tu pago sin salir de Zeus.
-                  </p>
-                  <div className="overflow-hidden rounded-2xl border border-white/10 bg-white">
-                    <iframe
-                      src={paymentUrl}
-                      title="Checkout one shot de Zeleri"
-                      className="w-full"
-                      style={{ height: '72vh', minHeight: '640px', border: 0 }}
-                      allow="payment *"
-                    />
-                  </div>
-                  <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 space-y-3">
-                    <p className="text-xs text-white/50 leading-relaxed">
-                      Si el cobro se realizó pero el flujo no avanza, Zeus intentará confirmarlo automáticamente. También puedes forzar una verificación manual sin cerrar esta ventana.
-                    </p>
-                    {errorMsg && (
-                      <p className="text-xs text-red-400 font-semibold">{errorMsg}</p>
-                    )}
-                    <div className="grid gap-3">
-                      <button
-                        onClick={handleManualRecovery}
-                        disabled={isRecovering}
-                        className="w-full py-3 rounded-xl font-bold text-sm transition-all disabled:opacity-60"
+                  {checkoutContext?.paymentMode === 'redirect' ? (
+                    <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-6 space-y-4 text-center">
+                      <p className="text-sm text-white/40">
+                        Estamos abriendo el checkout seguro de pago.
+                      </p>
+                      <a
+                        href={paymentUrl}
+                        className="block w-full py-4 rounded-xl font-bold text-sm transition-all"
                         style={{ background: 'linear-gradient(135deg, #0EA5E9, #00D4FF)', color: '#0A0A0F' }}
                       >
-                        {isRecovering ? 'Verificando pago...' : 'Ya pagué, verificar ahora'}
-                      </button>
-                      <button
-                        onClick={handleRetry}
-                        className="w-full py-3 rounded-xl border border-white/10 text-sm font-bold text-white/60 hover:text-white transition-all"
-                      >
-                        Recargar checkout
-                      </button>
+                        Ir al pago ahora
+                      </a>
                     </div>
-                  </div>
+                  ) : (
+                    <>
+                      <p className="text-sm text-white/40 text-center">
+                        Completa tu pago sin salir de Zeus.
+                      </p>
+                      <div className="overflow-hidden rounded-2xl border border-white/10 bg-white">
+                        <iframe
+                          src={paymentUrl}
+                          title="Checkout seguro"
+                          className="w-full"
+                          style={{ height: '72vh', minHeight: '640px', border: 0 }}
+                          allow="payment *"
+                        />
+                      </div>
+                      <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 space-y-3">
+                        <p className="text-xs text-white/50 leading-relaxed">
+                          Si el cobro se realizó pero el flujo no avanza, Zeus intentará confirmarlo automáticamente. También puedes forzar una verificación manual sin cerrar esta ventana.
+                        </p>
+                        {errorMsg && (
+                          <p className="text-xs text-red-400 font-semibold">{errorMsg}</p>
+                        )}
+                        <div className="grid gap-3">
+                          <button
+                            onClick={handleManualRecovery}
+                            disabled={isRecovering}
+                            className="w-full py-3 rounded-xl font-bold text-sm transition-all disabled:opacity-60"
+                            style={{ background: 'linear-gradient(135deg, #0EA5E9, #00D4FF)', color: '#0A0A0F' }}
+                          >
+                            {isRecovering ? 'Verificando pago...' : 'Ya pagué, verificar ahora'}
+                          </button>
+                          <button
+                            onClick={handleRetry}
+                            className="w-full py-3 rounded-xl border border-white/10 text-sm font-bold text-white/60 hover:text-white transition-all"
+                          >
+                            Recargar checkout
+                          </button>
+                        </div>
+                      </div>
+                    </>
+                  )}
                 </motion.div>
               )}
 
@@ -503,7 +533,7 @@ export default function ZeleriPayModal({
 
           <div className="px-8 pb-6 flex items-center justify-center gap-2 opacity-20">
             <span className="text-[9px] font-black uppercase tracking-widest">
-              Powered by Zeleri · Checkout one shot
+              Powered by Zeus · Checkout seguro
             </span>
           </div>
         </motion.div>

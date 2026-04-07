@@ -1,5 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 import { NextResponse } from 'next/server';
+import { findMercadoPagoPaymentByExternalReference, getMercadoPagoPayment, isMercadoPagoApproved } from '@/lib/mercadopago';
+import { getProductExternalReference } from '@/lib/payments';
 import { getZeleriOrderDetail, isZeleriPaid } from '@/lib/zeleri';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -14,26 +16,43 @@ export async function GET(request: Request) {
     const orderId = Number(searchParams.get('order_id'));
     const productId = searchParams.get('product_id');
     const clientEmail = (searchParams.get('client_email') || '').trim().toLowerCase();
+    const provider = (searchParams.get('provider') || '').trim().toLowerCase();
 
     if (!orderId || !productId) {
       return NextResponse.json({ error: 'order_id y product_id son requeridos' }, { status: 400 });
     }
 
-    const detail = await getZeleriOrderDetail(orderId);
-    if (!isZeleriPaid(detail)) {
-      return NextResponse.json({
-        verified: false,
-        status: detail.data?.status || 'pending',
-      });
-    }
+    if (provider === 'mercadopago') {
+      const payment = await getMercadoPagoPayment(String(orderId));
 
-    if (String(detail.data?.commerce_order || '') !== String(productId)) {
-      return NextResponse.json({ error: 'La orden no corresponde al producto solicitado' }, { status: 422 });
-    }
+      if (!isMercadoPagoApproved(payment?.status)) {
+        return NextResponse.json({
+          verified: false,
+          status: payment?.status || 'pending',
+        });
+      }
 
-    const commerceReference = String(detail.data?.commerce_reference || '').trim().toLowerCase();
-    if (clientEmail && commerceReference && commerceReference !== clientEmail) {
-      return NextResponse.json({ error: 'La orden no coincide con el comprador esperado' }, { status: 422 });
+      const expectedExternalReference = getProductExternalReference(productId, clientEmail);
+      if (expectedExternalReference !== String(payment?.external_reference || '')) {
+        return NextResponse.json({ error: 'El pago no corresponde al producto solicitado' }, { status: 422 });
+      }
+    } else {
+      const detail = await getZeleriOrderDetail(orderId);
+      if (!isZeleriPaid(detail)) {
+        return NextResponse.json({
+          verified: false,
+          status: detail.data?.status || 'pending',
+        });
+      }
+
+      if (String(detail.data?.commerce_order || '') !== String(productId)) {
+        return NextResponse.json({ error: 'La orden no corresponde al producto solicitado' }, { status: 422 });
+      }
+
+      const commerceReference = String(detail.data?.commerce_reference || '').trim().toLowerCase();
+      if (clientEmail && commerceReference && commerceReference !== clientEmail) {
+        return NextResponse.json({ error: 'La orden no coincide con el comprador esperado' }, { status: 422 });
+      }
     }
 
     const { data: existingToken } = await supabase

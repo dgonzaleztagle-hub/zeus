@@ -1,4 +1,6 @@
 import { NextResponse } from 'next/server';
+import { createMercadoPagoProductPreference } from '@/lib/mercadopago';
+import { getActivePaymentProvider, getPaymentMode } from '@/lib/payments';
 import { createZeleriOrder } from '@/lib/zeleri';
 
 // =============================================================================
@@ -69,6 +71,27 @@ export async function POST(request: Request) {
     const baseUrl  = `${protocol}://${host}`;
 
     const { date, slot } = metadata || {};
+    const provider = getActivePaymentProvider();
+
+    if (provider === 'mercadopago') {
+      const preference = await createMercadoPagoProductPreference({
+        productId: item_id,
+        itemName: item_name,
+        amount: sanitizedAmount,
+        clientName: client_name,
+        clientEmail: client_email,
+        clientWhatsapp: metadata?.client_whatsapp || '',
+        baseUrl,
+      });
+
+      return NextResponse.json({
+        success: true,
+        payment_provider: provider,
+        payment_mode: getPaymentMode(provider),
+        payment_url: preference.init_point || preference.sandbox_init_point,
+        order_id: preference.id || null,
+      });
+    }
 
     const order = await createZeleriOrder({
       title:       item_name,
@@ -88,9 +111,11 @@ export async function POST(request: Request) {
     });
 
     return NextResponse.json({
-      success:     true,
+      success: true,
+      payment_provider: provider,
+      payment_mode: getPaymentMode(provider),
       payment_url: order.data.url,
-      order_id:    order.data.order_id,
+      order_id: order.data.order_id,
     });
 
   } catch (error: any) {
