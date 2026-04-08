@@ -1,4 +1,6 @@
-import { createBrowserClient, createServerClient } from '@supabase/ssr';
+import 'server-only';
+
+import { createServerClient } from '@supabase/ssr';
 import { createClient } from '@supabase/supabase-js';
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
@@ -25,10 +27,6 @@ const serviceClient = createClient(ZEUS_SUPABASE_URL, ZEUS_SERVICE_ROLE_KEY, {
 export function isAdminUser(user: any) {
   const role = String(user?.user_metadata?.role || '').toLowerCase();
   return role === 'admin' || role === 'master';
-}
-
-export function createZeusBrowserClient() {
-  return createBrowserClient(ZEUS_SUPABASE_URL, ZEUS_SUPABASE_ANON_KEY);
 }
 
 async function getUserFromBearerToken(request: NextRequest) {

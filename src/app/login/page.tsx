@@ -3,7 +3,7 @@
 import { Suspense, useEffect, useMemo, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { motion } from 'framer-motion';
-import { createZeusBrowserClient } from '@/lib/admin-auth';
+import { createZeusBrowserClient } from '@/lib/admin-auth-client';
 
 function LoginContent() {
   const router = useRouter();
