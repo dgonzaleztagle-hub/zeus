@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { createZeleriEnrollmentOrder, confirmZeleriEnrollmentOrder } from '@/lib/zeleri';
 import { issueDownloadToken } from '@/modules/digital-access/tokens';
+import { isZeleriFallbackEnabled } from '@/lib/payments';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_ZEUS_SUPABASE_URL!,
@@ -18,6 +19,10 @@ const supabase = createClient(
  */
 export async function POST(request: Request) {
   try {
+    if (!isZeleriFallbackEnabled()) {
+      return NextResponse.json({ error: 'Fallback Zeleri deshabilitado' }, { status: 403 });
+    }
+
     const body = await request.json();
     const {
       card_id,

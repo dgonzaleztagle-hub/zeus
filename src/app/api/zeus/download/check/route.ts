@@ -15,17 +15,20 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: 'Referencia inválida' }, { status: 400 });
     }
 
-    const productId = reference.split('_')[1];
-
-    // Buscar el token más reciente para este producto en los últimos 10 minutos
-    const tenMinutesAgo = new Date();
-    tenMinutesAgo.setMinutes(tenMinutesAgo.getMinutes() - 10);
+    const [, productId, rawTs] = reference.split('_');
+    const referenceTs = Number(rawTs || 0);
+    const createdAfter = Number.isFinite(referenceTs) && referenceTs > 0
+      ? new Date(referenceTs - 60 * 1000).toISOString()
+      : new Date(Date.now() - 10 * 60 * 1000).toISOString();
 
     const { data: tokenData, error } = await supabase
       .from('zeus_download_tokens')
-      .select('token, expires_at')
+      .select('token, expires_at, created_at')
       .eq('product_id', productId)
-      .gt('created_at', tenMinutesAgo.toISOString())
+      .eq('used', false)
+      .gt('expires_at', new Date().toISOString())
+      .gt('created_at', createdAfter)
+      .order('created_at', { ascending: false })
       .limit(1)
       .maybeSingle();
 

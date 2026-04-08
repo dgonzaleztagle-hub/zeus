@@ -331,7 +331,6 @@ export default function AdminV2Page() {
     try {
       const response = await fetch(`/api/zeus/admin/products?id=${productId}`, {
         method: 'DELETE',
-        headers: { 'x-zeus-bypass': 'zeus_master_key_2026' },
       });
       const json = await response.json();
       if (!response.ok) throw new Error(json.error || 'No se pudo eliminar');
@@ -385,7 +384,6 @@ export default function AdminV2Page() {
     try {
       const response = await fetch(`/api/zeus/admin/services?id=${serviceId}`, {
         method: 'DELETE',
-        headers: { 'x-zeus-bypass': 'zeus_master_key_2026' },
       });
 
       const json = await response.json();

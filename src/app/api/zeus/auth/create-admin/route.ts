@@ -1,7 +1,8 @@
-﻿import { createClient } from '@supabase/supabase-js';
+import { createClient } from '@supabase/supabase-js';
 
 const zeusSupabaseUrl = process.env.NEXT_PUBLIC_ZEUS_SUPABASE_URL;
 const zeusServiceRoleKey = process.env.ZEUS_SUPABASE_SERVICE_ROLE_KEY;
+const zeusSetupSecret = (process.env.ZEUS_SETUP_SECRET || '').trim();
 
 if (!zeusSupabaseUrl || !zeusServiceRoleKey) {
   throw new Error('Faltan variables ZEUS de Supabase: NEXT_PUBLIC_ZEUS_SUPABASE_URL y/o ZEUS_SUPABASE_SERVICE_ROLE_KEY');
@@ -12,16 +13,30 @@ const ZEUS_SERVICE_ROLE_KEY: string = zeusServiceRoleKey;
 
 export async function POST(request: Request) {
   try {
+    if (!zeusSetupSecret) {
+      return Response.json(
+        { error: 'Endpoint deshabilitado' },
+        { status: 403 },
+      );
+    }
+
+    const providedSecret = request.headers.get('x-zeus-setup-secret')?.trim() || '';
+    if (providedSecret !== zeusSetupSecret) {
+      return Response.json(
+        { error: 'No autorizado' },
+        { status: 401 },
+      );
+    }
+
     const { email, password } = await request.json();
 
     if (!email || !password) {
       return Response.json(
         { error: 'Email and password are required' },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
-    // Usar el service role key para crear el usuario
     const supabase = createClient(
       ZEUS_SUPABASE_URL,
       ZEUS_SERVICE_ROLE_KEY,
@@ -30,10 +45,9 @@ export async function POST(request: Request) {
           autoRefreshToken: false,
           persistSession: false,
         },
-      }
+      },
     );
 
-    // Crear usuario con contraseña y rol admin
     const { data, error } = await supabase.auth.admin.createUser({
       email,
       password,
@@ -46,21 +60,21 @@ export async function POST(request: Request) {
     if (error) {
       return Response.json(
         { error: error.message },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     return Response.json(
-      { 
+      {
         message: 'Admin user created successfully',
         user: data.user,
       },
-      { status: 201 }
+      { status: 201 },
     );
   } catch (error: any) {
     return Response.json(
       { error: error.message },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

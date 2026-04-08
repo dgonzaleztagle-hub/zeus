@@ -1,7 +1,7 @@
-
 import { createClient } from '@supabase/supabase-js';
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
+import { requireAdminRequest } from '@/lib/admin-auth';
 
 const ALLOWED_MIME_TYPES = [
   'application/pdf',
@@ -22,7 +22,7 @@ const ALLOWED_MIME_TYPES = [
   'text/plain',
   'audio/mpeg',
   'video/mp4',
-  'application/octet-stream'
+  'application/octet-stream',
 ];
 
 const inferMimeType = (fileName: string) => {
@@ -45,7 +45,7 @@ const inferMimeType = (fileName: string) => {
     pptx: 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
     txt: 'text/plain',
     mp3: 'audio/mpeg',
-    mp4: 'video/mp4'
+    mp4: 'video/mp4',
   };
 
   return mimeMap[extension] || 'application/octet-stream';
@@ -54,21 +54,23 @@ const inferMimeType = (fileName: string) => {
 const BUCKET_CONFIG = {
   public: false,
   fileSizeLimit: 524288000,
-  allowedMimeTypes: ALLOWED_MIME_TYPES
+  allowedMimeTypes: ALLOWED_MIME_TYPES,
 };
 
 export async function POST(req: NextRequest) {
+  const unauthorized = await requireAdminRequest(req);
+  if (unauthorized) return unauthorized;
+
   try {
     const formData = await req.formData();
     const file = formData.get('file') as File;
     const path = formData.get('path') as string;
-    const bucket = formData.get('bucket') as string || 'zeus-assets';
+    const bucket = (formData.get('bucket') as string) || 'zeus-assets';
 
     if (!file || !path) {
       return NextResponse.json({ error: 'Missing file or path' }, { status: 400 });
     }
 
-    // Validar tamaño de archivo (máx 500MB)
     const maxSize = 500 * 1024 * 1024;
     if (file.size > maxSize) {
       return NextResponse.json({ error: 'Archivo muy grande (máx 500MB)' }, { status: 400 });
@@ -76,13 +78,10 @@ export async function POST(req: NextRequest) {
 
     const supabaseUrl = process.env.NEXT_PUBLIC_ZEUS_SUPABASE_URL!;
     const supabaseServiceKey = process.env.ZEUS_SUPABASE_SERVICE_ROLE_KEY!;
-
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
     const contentType = file.type || inferMimeType(file.name);
 
-    // Blindaje: si el bucket no existe en producción lo recreamos antes del upload.
     const { data: existingBucket, error: getBucketError } = await supabase.storage.getBucket(bucket);
-
     if (getBucketError) {
       const { error: createBucketError } = await supabase.storage.createBucket(bucket, BUCKET_CONFIG);
       if (createBucketError && !String(createBucketError.message || '').toLowerCase().includes('already exists')) {
@@ -97,12 +96,11 @@ export async function POST(req: NextRequest) {
     }
 
     const buffer = await file.arrayBuffer();
-    
     const { data, error } = await supabase.storage
       .from(bucket)
       .upload(path, buffer, {
         contentType,
-        upsert: true
+        upsert: true,
       });
 
     if (error) {
@@ -111,9 +109,6 @@ export async function POST(req: NextRequest) {
         error: error.message,
         detected_content_type: contentType,
         file_name: file.name,
-        supported_mime_types: [
-          'pdf', 'epub', 'zip', 'png', 'jpg', 'jpeg', 'webp', 'gif', 'svg', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'txt', 'mp3', 'mp4'
-        ]
       }, { status: 500 });
     }
 
@@ -121,12 +116,12 @@ export async function POST(req: NextRequest) {
       .from(bucket)
       .createSignedUrl(path, 60 * 60);
 
-    return NextResponse.json({ 
+    return NextResponse.json({
       success: true,
       data,
       path,
       bucket,
-      preview_url: previewData?.signedUrl || null
+      preview_url: previewData?.signedUrl || null,
     });
   } catch (err: any) {
     console.error('Server error upload:', err);

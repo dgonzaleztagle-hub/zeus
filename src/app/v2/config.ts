@@ -2,7 +2,6 @@ import type { ServiceType, ViewId } from './types';
 
 export const ADMIN_HEADERS = {
   'Content-Type': 'application/json',
-  'x-zeus-bypass': 'zeus_master_key_2026',
 };
 
 export const HOURS = ['09:00', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00', '18:00'];
@@ -55,4 +54,3 @@ export const EMPTY_SERVICE: {
   sort_order: 0,
   price: 0,
 };
-

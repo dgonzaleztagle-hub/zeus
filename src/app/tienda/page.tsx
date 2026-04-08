@@ -88,20 +88,12 @@ export default function TiendaPage() {
       
       if (!tokenData.token) throw new Error(tokenData.error || 'No se pudo generar el token');
 
-      // 2. Solicitar la URL de descarga con el token
-      const res = await fetch(`/api/zeus/download?token=${tokenData.token}`);
-      const data = await res.json();
-
-      if (data.download_url) {
-        const fileName = getFileNameFromProduct(product);
-        try {
-          await forceBrowserDownload(data.download_url, fileName);
-        } catch {
-          // Fallback si el navegador bloquea el flujo programático
-          window.location.href = data.download_url;
-        }
-      } else {
-        alert(data.error || 'Error al generar descarga');
+      const downloadUrl = `/api/zeus/download?token=${encodeURIComponent(tokenData.token)}`;
+      const fileName = getFileNameFromProduct(product);
+      try {
+        await forceBrowserDownload(downloadUrl, fileName);
+      } catch {
+        window.location.href = downloadUrl;
       }
     } catch (error: any) {
       alert(error.message || 'Error en el servidor de descargas');

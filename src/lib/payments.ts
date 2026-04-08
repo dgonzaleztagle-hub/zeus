@@ -10,6 +10,11 @@ export function getPaymentMode(provider: PaymentProvider): PaymentMode {
   return provider === 'mercadopago' ? 'embedded' : 'iframe';
 }
 
+export function isZeleriFallbackEnabled() {
+  const flag = String(process.env.ZEUS_ENABLE_ZELERI_FALLBACK || '').trim().toLowerCase();
+  return getActivePaymentProvider() === 'zeleri' || flag === 'true';
+}
+
 export function getServiceExternalReference(bookingId: string) {
   return `service|${bookingId}`;
 }

@@ -1,6 +1,7 @@
-﻿import { createClient } from '@supabase/supabase-js';
+import { createClient } from '@supabase/supabase-js';
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
+import { requireAdminRequest } from '@/lib/admin-auth';
 
 const zeusSupabaseUrl = process.env.NEXT_PUBLIC_ZEUS_SUPABASE_URL;
 const zeusServiceRoleKey = process.env.ZEUS_SUPABASE_SERVICE_ROLE_KEY;
@@ -14,9 +15,9 @@ const supabase = createClient(zeusSupabaseUrl, zeusServiceRoleKey);
 function isMissingTableError(error: any) {
   const message = String(error?.message || '').toLowerCase();
   return (
-    message.includes("could not find the table") ||
-    message.includes("relation") && message.includes("does not exist") ||
-    message.includes("schema cache")
+    message.includes('could not find the table') ||
+    (message.includes('relation') && message.includes('does not exist')) ||
+    message.includes('schema cache')
   );
 }
 
@@ -34,7 +35,10 @@ function normalizeStoragePath(value: string | null | undefined) {
   return cleaned.replace(/^\/+/, '');
 }
 
-export async function GET() {
+export async function GET(request: NextRequest) {
+  const unauthorized = await requireAdminRequest(request);
+  if (unauthorized) return unauthorized;
+
   try {
     const { data, error } = await supabase
       .from('zeus_products')
@@ -46,7 +50,7 @@ export async function GET() {
       if (isMissingTableError(error)) {
         return NextResponse.json({
           products: [],
-          warning: 'Tabla zeus_products no disponible en este entorno aún'
+          warning: 'Tabla zeus_products no disponible en este entorno aún',
         });
       }
       throw error;
@@ -75,7 +79,7 @@ export async function GET() {
           ...product,
           image_url: signed.signedUrl,
         };
-      })
+      }),
     );
 
     return NextResponse.json({ products: productsWithSignedImages });
@@ -85,18 +89,20 @@ export async function GET() {
 }
 
 export async function POST(request: NextRequest) {
+  const unauthorized = await requireAdminRequest(request);
+  if (unauthorized) return unauthorized;
+
   try {
     const body = await request.json();
     const { id, name, description, price, is_free, file_path, image_url } = body;
 
-    // Sanitizar precio: asegurar número positivo y entero (CLP)
     const sanitizedPrice = Math.max(0, Math.floor(Number(price) || 0));
     const isFreeProduct = Boolean(is_free) || sanitizedPrice === 0;
 
     if (!isFreeProduct && sanitizedPrice < 1000) {
       return NextResponse.json(
-        { error: 'Los productos pagados deben tener un precio mínimo de $1.000 CLP para operar con Zeleri.' },
-        { status: 400 }
+        { error: 'Los productos pagados deben tener un precio mínimo de $1.000 CLP.' },
+        { status: 400 },
       );
     }
 
@@ -107,12 +113,11 @@ export async function POST(request: NextRequest) {
       is_free: isFreeProduct,
       file_path,
       image_url,
-      active: true
+      active: true,
     };
 
     let result;
     if (id) {
-      // Update
       const { data, error } = await supabase
         .from('zeus_products')
         .update(productData)
@@ -121,13 +126,12 @@ export async function POST(request: NextRequest) {
         .single();
       if (error) {
         if (isMissingTableError(error)) {
-          return NextResponse.json({ error: 'La tabla zeus_products no existe en este entorno. Ejecuta la migracion de Zeus en Supabase.' }, { status: 503 });
+          return NextResponse.json({ error: 'La tabla zeus_products no existe en este entorno. Ejecuta la migración de Zeus en Supabase.' }, { status: 503 });
         }
         throw error;
       }
       result = data;
     } else {
-      // Insert
       const { data, error } = await supabase
         .from('zeus_products')
         .insert(productData)
@@ -135,7 +139,7 @@ export async function POST(request: NextRequest) {
         .single();
       if (error) {
         if (isMissingTableError(error)) {
-          return NextResponse.json({ error: 'La tabla zeus_products no existe en este entorno. Ejecuta la migracion de Zeus en Supabase.' }, { status: 503 });
+          return NextResponse.json({ error: 'La tabla zeus_products no existe en este entorno. Ejecuta la migración de Zeus en Supabase.' }, { status: 503 });
         }
         throw error;
       }
@@ -150,13 +154,15 @@ export async function POST(request: NextRequest) {
 }
 
 export async function DELETE(request: NextRequest) {
+  const unauthorized = await requireAdminRequest(request);
+  if (unauthorized) return unauthorized;
+
   try {
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');
 
     if (!id) return NextResponse.json({ error: 'ID requerido' }, { status: 400 });
 
-    // Hacemos un soft delete (desactivar)
     const { error } = await supabase
       .from('zeus_products')
       .update({ active: false })
@@ -164,7 +170,7 @@ export async function DELETE(request: NextRequest) {
 
     if (error) {
       if (isMissingTableError(error)) {
-        return NextResponse.json({ error: 'La tabla zeus_products no existe en este entorno. Ejecuta la migracion de Zeus en Supabase.' }, { status: 503 });
+        return NextResponse.json({ error: 'La tabla zeus_products no existe en este entorno. Ejecuta la migración de Zeus en Supabase.' }, { status: 503 });
       }
       throw error;
     }

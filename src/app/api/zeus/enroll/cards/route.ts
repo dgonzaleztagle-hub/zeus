@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { listZeleriCards } from '@/lib/zeleri';
+import { isZeleriFallbackEnabled } from '@/lib/payments';
 
 /**
  * GET /api/zeus/enroll/cards?email=xxx
@@ -10,6 +11,10 @@ import { listZeleriCards } from '@/lib/zeleri';
  */
 export async function GET(request: Request) {
   try {
+    if (!isZeleriFallbackEnabled()) {
+      return NextResponse.json({ error: 'Fallback Zeleri deshabilitado' }, { status: 403 });
+    }
+
     const { searchParams } = new URL(request.url);
     const email = searchParams.get('email');
 

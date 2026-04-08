@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
+import { requireAdminRequest } from '@/lib/admin-auth';
 
 const ALLOWED_MIME_TYPES = [
   'application/pdf',
@@ -21,16 +22,19 @@ const ALLOWED_MIME_TYPES = [
   'text/plain',
   'audio/mpeg',
   'video/mp4',
-  'application/octet-stream'
+  'application/octet-stream',
 ];
 
 const BUCKET_CONFIG = {
   public: false,
   fileSizeLimit: 524288000,
-  allowedMimeTypes: ALLOWED_MIME_TYPES
+  allowedMimeTypes: ALLOWED_MIME_TYPES,
 };
 
 export async function POST(req: NextRequest) {
+  const unauthorized = await requireAdminRequest(req);
+  if (unauthorized) return unauthorized;
+
   try {
     const { path, bucket = 'zeus-assets' } = await req.json();
 
@@ -43,7 +47,6 @@ export async function POST(req: NextRequest) {
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     const { data: existingBucket, error: getBucketError } = await supabase.storage.getBucket(bucket);
-
     if (getBucketError) {
       const { error: createBucketError } = await supabase.storage.createBucket(bucket, BUCKET_CONFIG);
       if (createBucketError && !String(createBucketError.message || '').toLowerCase().includes('already exists')) {
@@ -57,7 +60,7 @@ export async function POST(req: NextRequest) {
     }
 
     const { data, error } = await supabase.storage.from(bucket).createSignedUploadUrl(path, {
-      upsert: true
+      upsert: true,
     });
 
     if (error || !data?.token) {
@@ -69,7 +72,7 @@ export async function POST(req: NextRequest) {
       path,
       bucket,
       token: data.token,
-      signedUrl: data.signedUrl
+      signedUrl: data.signedUrl,
     });
   } catch (err: any) {
     console.error('Signed upload URL error:', err);

@@ -1,12 +1,13 @@
-﻿'use client';
+'use client';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { createBrowserClient } from '@supabase/ssr';
+import { Suspense, useEffect, useMemo, useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { motion } from 'framer-motion';
+import { createZeusBrowserClient } from '@/lib/admin-auth';
 
-export default function ZeusLoginPage() {
+function LoginContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const zeusSupabaseUrl = process.env.NEXT_PUBLIC_ZEUS_SUPABASE_URL;
   const zeusSupabaseAnonKey = process.env.NEXT_PUBLIC_ZEUS_SUPABASE_ANON_KEY;
 
@@ -14,16 +15,30 @@ export default function ZeusLoginPage() {
     throw new Error('Faltan variables ZEUS publicas: NEXT_PUBLIC_ZEUS_SUPABASE_URL y/o NEXT_PUBLIC_ZEUS_SUPABASE_ANON_KEY');
   }
 
-  const supabase = createBrowserClient(
-    zeusSupabaseUrl,
-    zeusSupabaseAnonKey
-  );
+  const supabase = useMemo(() => createZeusBrowserClient(), []);
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const nextPath = searchParams.get('next') || '/v2';
+
+  useEffect(() => {
+    let mounted = true;
+
+    supabase.auth.getUser().then(({ data }) => {
+      const role = String(data.user?.user_metadata?.role || '').toLowerCase();
+      if (!mounted) return;
+      if (role === 'admin' || role === 'master') {
+        router.replace(nextPath);
+      }
+    });
+
+    return () => {
+      mounted = false;
+    };
+  }, [nextPath, router, supabase]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -42,16 +57,16 @@ export default function ZeusLoginPage() {
         return;
       }
 
-      if (data.user?.user_metadata?.role !== 'admin') {
+      const role = String(data.user?.user_metadata?.role || '').toLowerCase();
+      if (role !== 'admin' && role !== 'master') {
         setError('No tienes permisos de administrador');
         await supabase.auth.signOut();
         setLoading(false);
         return;
       }
 
-      // Login exitoso, redirigir al admin
-      router.push('/admin');
-    } catch (err) {
+      router.push(nextPath);
+    } catch {
       setError('Error al iniciar sesión');
       setLoading(false);
     }
@@ -65,7 +80,6 @@ export default function ZeusLoginPage() {
         transition={{ duration: 0.5 }}
         className="w-full max-w-md"
       >
-        {/* Logo */}
         <div className="text-center mb-8">
           <motion.div
             initial={{ scale: 0 }}
@@ -79,7 +93,6 @@ export default function ZeusLoginPage() {
           <p className="text-white/60">Panel de Control</p>
         </div>
 
-        {/* Card de Login */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -87,7 +100,6 @@ export default function ZeusLoginPage() {
           className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-8 shadow-2xl"
         >
           <form onSubmit={handleLogin} className="space-y-6">
-            {/* Email Input */}
             <div>
               <label htmlFor="email" className="block text-sm font-semibold text-white mb-2">
                 Email
@@ -103,7 +115,6 @@ export default function ZeusLoginPage() {
               />
             </div>
 
-            {/* Password Input */}
             <div>
               <label htmlFor="password" className="block text-sm font-semibold text-white mb-2">
                 Contraseña
@@ -128,7 +139,6 @@ export default function ZeusLoginPage() {
               </div>
             </div>
 
-            {/* Error Message */}
             {error && (
               <motion.div
                 initial={{ opacity: 0, y: -10 }}
@@ -139,7 +149,6 @@ export default function ZeusLoginPage() {
               </motion.div>
             )}
 
-            {/* Login Button */}
             <motion.button
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
@@ -164,7 +173,6 @@ export default function ZeusLoginPage() {
             </motion.button>
           </form>
 
-          {/* Footer */}
           <div className="mt-6 pt-6 border-t border-white/10">
             <a
               href="/"
@@ -175,17 +183,23 @@ export default function ZeusLoginPage() {
           </div>
         </motion.div>
 
-        {/* Decorative Elements */}
         <div className="mt-8 text-center text-white/30 text-xs">
           <p>Solo administradores pueden acceder</p>
         </div>
       </motion.div>
 
-      {/* Background Gradient */}
       <div className="fixed inset-0 z-[-1]">
         <div className="absolute top-0 left-1/4 w-96 h-96 bg-[#0EA5E9]/5 rounded-full blur-3xl opacity-30"></div>
         <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-blue-500/5 rounded-full blur-3xl opacity-30"></div>
       </div>
     </div>
+  );
+}
+
+export default function ZeusLoginPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center text-white/50">Cargando login...</div>}>
+      <LoginContent />
+    </Suspense>
   );
 }

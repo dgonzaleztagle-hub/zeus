@@ -26,8 +26,12 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Producto no encontrado' }, { status: 404 });
     }
 
-    // En un flujo real, aquí verificaríamos si el usuario pagó si !product.is_free
-    // Por ahora, generamos el token directamente
+    if (!product.is_free) {
+      return NextResponse.json(
+        { error: 'La emisión directa de tokens para productos premium está deshabilitada. Usa la verificación post-pago.' },
+        { status: 403 },
+      );
+    }
 
     const issued = await issueDownloadToken({
       supabase,

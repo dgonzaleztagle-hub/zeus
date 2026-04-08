@@ -96,15 +96,6 @@ export default function ZeusAdminPage() {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      const token = session?.access_token;
-      
-      const headers: any = {
-        'Content-Type': 'application/json',
-        'x-zeus-bypass': 'zeus_master_key_2026' 
-      };
-      if (token) headers['Authorization'] = `Bearer ${token}`;
-
       if (activeTab === 'agenda') {
         const { data, error } = await supabase.from('zeus_bookings').select('*').eq('payment_status', 'paid').order('booking_date', { ascending: true });
         if (error) {
@@ -117,12 +108,12 @@ export default function ZeusAdminPage() {
         }
         setBookings(data || []);
       } else if (activeTab === 'store') {
-        const res = await fetch('/api/zeus/admin/products', { headers });
+        const res = await fetch('/api/zeus/admin/products');
         const data = await res.json();
         if (data.error) throw new Error(data.error);
         setProducts(data.products || []);
       } else if (activeTab === 'services') {
-        const res = await fetch('/api/zeus/admin/services', { headers });
+        const res = await fetch('/api/zeus/admin/services');
         const data = await res.json();
         if (data.error) throw new Error(data.error);
         setServices(data.services || []);
@@ -289,8 +280,7 @@ export default function ZeusAdminPage() {
     setDeletingProductId(productId);
     try {
       const res = await fetch(`/api/zeus/admin/products?id=${productId}`, {
-        method: 'DELETE',
-        headers: { 'x-zeus-bypass': 'zeus_master_key_2026' }
+        method: 'DELETE'
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
@@ -316,10 +306,7 @@ export default function ZeusAdminPage() {
     try {
       const res = await fetch('/api/zeus/admin/services', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-zeus-bypass': 'zeus_master_key_2026'
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(newService)
       });
       const data = await res.json();
@@ -342,8 +329,7 @@ export default function ZeusAdminPage() {
     setDeletingServiceId(serviceId);
     try {
       const res = await fetch(`/api/zeus/admin/services?id=${serviceId}`, {
-        method: 'DELETE',
-        headers: { 'x-zeus-bypass': 'zeus_master_key_2026' }
+        method: 'DELETE'
       });
       if (!res.ok) throw new Error('Error al desactivar');
       addToast('Desactivado', 'success');
@@ -361,10 +347,7 @@ export default function ZeusAdminPage() {
     try {
       const res = await fetch('/api/zeus/admin/services', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-zeus-bypass': 'zeus_master_key_2026'
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           ...service,
           active: true,
