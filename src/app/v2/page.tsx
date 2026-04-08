@@ -2,13 +2,27 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { createBrowserClient } from '@supabase/ssr';
-import { addDays, eachDayOfInterval, format, isSameDay, startOfDay, startOfWeek } from 'date-fns';
+import {
+  addDays,
+  eachDayOfInterval,
+  endOfMonth,
+  endOfWeek,
+  format,
+  isSameDay,
+  isSameMonth,
+  startOfDay,
+  startOfMonth,
+  startOfWeek,
+  subMonths,
+  addMonths,
+} from 'date-fns';
 import { es } from 'date-fns/locale';
 import { motion, AnimatePresence } from 'framer-motion';
 
 type ViewId = 'overview' | 'agenda' | 'asesorias' | 'tecnico' | 'empresas' | 'productos' | 'pagos';
 type ToastType = 'success' | 'error' | 'info';
 type ServiceType = 'asesoria' | 'tecnico' | 'empresas';
+type AgendaVisualStatus = 'paid' | 'pending' | 'manual_block';
 
 type ToastItem = {
   id: number;
@@ -147,6 +161,7 @@ export default function AdminV2Page() {
   const [products, setProducts] = useState<any[]>([]);
   const [services, setServices] = useState<any[]>([]);
   const [selectedDate, setSelectedDate] = useState(startOfDay(new Date()));
+  const [selectedMonth, setSelectedMonth] = useState(startOfMonth(new Date()));
   const [newProduct, setNewProduct] = useState(EMPTY_PRODUCT);
   const [newService, setNewService] = useState(EMPTY_SERVICE);
   const [serviceToDeactivate, setServiceToDeactivate] = useState<any | null>(null);
@@ -221,8 +236,11 @@ export default function AdminV2Page() {
     return [];
   }, [servicesByType, view]);
 
-  const weekStart = startOfWeek(selectedDate, { weekStartsOn: 1 });
-  const weekDays = eachDayOfInterval({ start: weekStart, end: addDays(weekStart, 6) });
+  const monthStart = startOfMonth(selectedMonth);
+  const monthEnd = endOfMonth(selectedMonth);
+  const monthGridStart = startOfWeek(monthStart, { weekStartsOn: 1 });
+  const monthGridEnd = endOfWeek(monthEnd, { weekStartsOn: 1 });
+  const monthDays = eachDayOfInterval({ start: monthGridStart, end: monthGridEnd });
 
   const nextBookings = useMemo(() => {
     const now = new Date();
@@ -245,6 +263,42 @@ export default function AdminV2Page() {
   const monthlyRevenue = monthPayments.reduce((sum, payment) => sum + (Number(payment.amount) || 0), 0);
   const historicalRevenue = payments.reduce((sum, payment) => sum + (Number(payment.amount) || 0), 0);
   const averageTicket = payments.length ? Math.round(historicalRevenue / payments.length) : 0;
+
+  const operationalBookings = useMemo(() => {
+    const expiredPendingCutoff = Date.now() - 30 * 60 * 1000;
+
+    return bookings.filter((booking) => {
+      if (booking.client_name === 'ADMIN_BLOCK') return true;
+      if (booking.payment_status === 'paid') return true;
+      if (booking.payment_status !== 'pending') return false;
+
+      const createdAt = new Date(booking.created_at || '').getTime();
+      return Number.isFinite(createdAt) && createdAt >= expiredPendingCutoff;
+    });
+  }, [bookings]);
+
+  const agendaDayBookings = useMemo(
+    () =>
+      operationalBookings.filter((booking) =>
+        isSameDay(new Date(`${booking.booking_date}T12:00:00`), selectedDate),
+      ),
+    [operationalBookings, selectedDate],
+  );
+
+  function getAgendaVisualStatus(booking: any): AgendaVisualStatus | null {
+    if (!booking) return null;
+    if (booking.client_name === 'ADMIN_BLOCK') return 'manual_block';
+    if (booking.payment_status === 'paid') return 'paid';
+    if (booking.payment_status === 'pending') return 'pending';
+    return null;
+  }
+
+  function getAgendaStatusLabel(status: AgendaVisualStatus | null) {
+    if (status === 'manual_block') return 'Bloqueo manual';
+    if (status === 'paid') return 'Reservado';
+    if (status === 'pending') return 'Pago en curso';
+    return 'Disponible';
+  }
 
   async function refreshData() {
     setRefreshTick((current) => current + 1);
@@ -568,35 +622,88 @@ export default function AdminV2Page() {
       <SectionHeader
         eyebrow="Agenda"
         title="Disponibilidad y operación diaria."
-        description="Aquí solo viven reservas y bloqueos. Nada de producto, catálogo ni formularios que no pertenezcan a la agenda."
+        description="Esta vista muestra solo lo operativamente bloqueante: reservas pagadas, pagos en curso vigentes y bloqueos manuales. Los failed no participan en disponibilidad."
+        action={
+          <div className="flex flex-wrap items-center gap-3">
+            <button
+              onClick={() => setSelectedMonth((current) => startOfMonth(subMonths(current, 1)))}
+              className="rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3 text-xs font-black uppercase tracking-[0.22em] text-white/55 transition hover:border-white/20 hover:text-white"
+            >
+              Mes anterior
+            </button>
+            <div className="rounded-2xl border border-white/8 bg-white/[0.03] px-4 py-3 text-xs font-black uppercase tracking-[0.24em] text-white/70">
+              {format(selectedMonth, "MMMM 'de' yyyy", { locale: es })}
+            </div>
+            <button
+              onClick={() => setSelectedMonth((current) => startOfMonth(addMonths(current, 1)))}
+              className="rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3 text-xs font-black uppercase tracking-[0.22em] text-white/55 transition hover:border-white/20 hover:text-white"
+            >
+              Mes siguiente
+            </button>
+          </div>
+        }
       />
 
-      <div className="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
-        <ModuleCard title="Semana activa">
-          <div className="grid grid-cols-2 gap-3 md:grid-cols-7">
-            {weekDays.map((day) => {
-              const dayBookings = bookings.filter((booking) => isSameDay(new Date(`${booking.booking_date}T12:00:00`), day));
+      <div className="grid gap-6 xl:grid-cols-[1.18fr_0.82fr]">
+        <ModuleCard title="Calendario mensual">
+          <div className="mb-4 flex flex-wrap gap-3 text-[10px] font-black uppercase tracking-[0.24em]">
+            <span className="rounded-full border border-emerald-400/30 bg-emerald-400/10 px-3 py-2 text-emerald-300">Reservado</span>
+            <span className="rounded-full border border-amber-400/30 bg-amber-400/10 px-3 py-2 text-amber-300">Pago en curso</span>
+            <span className="rounded-full border border-red-400/30 bg-red-400/10 px-3 py-2 text-red-300">Bloqueo manual</span>
+          </div>
+          <div className="mb-3 grid grid-cols-7 gap-2">
+            {['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'].map((label) => (
+              <div key={label} className="px-2 py-1 text-center text-[10px] font-black uppercase tracking-[0.24em] text-white/25">
+                {label}
+              </div>
+            ))}
+          </div>
+          <div className="grid grid-cols-7 gap-2">
+            {monthDays.map((day) => {
+              const dayBookings = operationalBookings.filter((booking) =>
+                isSameDay(new Date(`${booking.booking_date}T12:00:00`), day),
+              );
               const isSelected = isSameDay(day, selectedDate);
+              const inCurrentMonth = isSameMonth(day, selectedMonth);
+              const reservedCount = dayBookings.filter((booking) => getAgendaVisualStatus(booking) === 'paid').length;
+              const pendingCount = dayBookings.filter((booking) => getAgendaVisualStatus(booking) === 'pending').length;
+              const blockedCount = dayBookings.filter((booking) => getAgendaVisualStatus(booking) === 'manual_block').length;
 
               return (
                 <button
                   key={day.toISOString()}
-                  onClick={() => setSelectedDate(day)}
+                  onClick={() => {
+                    setSelectedMonth(startOfMonth(day));
+                    setSelectedDate(day);
+                  }}
                   className={`rounded-2xl border px-3 py-4 text-left transition ${
-                    isSelected ? 'border-cyan-300/60 bg-cyan-300/10' : 'border-white/6 bg-white/[0.02] hover:border-white/15'
+                    isSelected
+                      ? 'border-cyan-300/60 bg-cyan-300/10'
+                      : inCurrentMonth
+                        ? 'border-white/6 bg-white/[0.02] hover:border-white/15'
+                        : 'border-white/5 bg-white/[0.01] text-white/25'
                   }`}
                 >
                   <div className="text-[10px] font-black uppercase tracking-[0.24em] text-white/30">
                     {format(day, 'EEE', { locale: es })}
                   </div>
                   <div className="mt-2 text-2xl font-black">{format(day, 'd')}</div>
-                  <div className="mt-3 flex gap-1">
-                    {dayBookings.slice(0, 5).map((booking, index) => (
-                      <span
-                        key={`${booking.id}-${index}`}
-                        className={`h-1.5 w-5 rounded-full ${booking.client_name === 'ADMIN_BLOCK' ? 'bg-white/20' : 'bg-cyan-300'}`}
-                      />
-                    ))}
+                  <div className="mt-3 space-y-1">
+                    {reservedCount > 0 && (
+                      <div className="rounded-full bg-emerald-400/12 px-2 py-1 text-[9px] font-black uppercase tracking-[0.18em] text-emerald-300">
+                        {reservedCount} reservado{reservedCount > 1 ? 's' : ''}
+                      </div>
+                    )}
+                    {pendingCount > 0 && (
+                      <div className="rounded-full bg-amber-400/12 px-2 py-1 text-[9px] font-black uppercase tracking-[0.18em] text-amber-300">
+                        {pendingCount} en curso
+                      </div>
+                    )}
+                    {blockedCount > 0 && (
+                      <div className="rounded-full bg-red-400/12 px-2 py-1 text-[9px] font-black uppercase tracking-[0.18em] text-red-300">
+                        {blockedCount} bloqueo{blockedCount > 1 ? 's' : ''}
+                      </div>
+                    )}
                   </div>
                 </button>
               );
@@ -605,28 +712,43 @@ export default function AdminV2Page() {
         </ModuleCard>
 
         <ModuleCard title={`Bloqueos para ${format(selectedDate, "d 'de' MMMM", { locale: es })}`}>
-          <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
+          <div className="mb-4 rounded-2xl border border-white/8 bg-white/[0.02] p-4 text-xs leading-relaxed text-white/45">
+            Haz clic en una hora disponible para bloquearla manualmente. Las reservas pagadas y los pagos en curso vigentes se muestran aparte y no se pueden sobrescribir.
+          </div>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             {HOURS.map((hour) => {
-              const booking = bookings.find(
+              const booking = agendaDayBookings.find(
                 (item) => isSameDay(new Date(`${item.booking_date}T12:00:00`), selectedDate) && item.booking_slot === hour,
               );
-              const isOccupied = Boolean(booking);
-              const isAdminBlock = booking?.client_name === 'ADMIN_BLOCK';
+              const visualStatus = getAgendaVisualStatus(booking);
+              const isOccupied = Boolean(visualStatus);
+              const isAdminBlock = visualStatus === 'manual_block';
+              const statusLabel = getAgendaStatusLabel(visualStatus);
 
               return (
                 <button
                   key={hour}
                   disabled={(isOccupied && !isAdminBlock) || isBlocking}
                   onClick={() => (isAdminBlock ? handleUnblockSlot(hour) : handleBlockSlot(hour))}
-                  className={`rounded-2xl border px-4 py-3 text-xs font-black uppercase tracking-[0.2em] transition ${
+                  className={`rounded-2xl border px-4 py-4 text-left transition ${
                     isAdminBlock
-                      ? 'border-cyan-300/50 bg-cyan-300/10 text-cyan-200 hover:border-red-400/40 hover:bg-red-400/10 hover:text-red-300'
-                      : isOccupied
-                        ? 'cursor-not-allowed border-white/5 bg-white/[0.02] text-white/20'
-                        : 'border-white/10 bg-white/[0.02] text-white/60 hover:border-cyan-300/40 hover:text-white'
+                      ? 'border-red-400/40 bg-red-400/10 text-red-200 hover:border-red-300 hover:bg-red-400/15'
+                      : visualStatus === 'paid'
+                        ? 'cursor-not-allowed border-emerald-400/25 bg-emerald-400/10 text-emerald-200'
+                        : visualStatus === 'pending'
+                          ? 'cursor-not-allowed border-amber-400/30 bg-amber-400/10 text-amber-200'
+                          : 'border-white/10 bg-white/[0.02] text-white/75 hover:border-cyan-300/40 hover:bg-cyan-300/6 hover:text-white'
                   }`}
                 >
-                  {hour}
+                  <div className="text-sm font-black uppercase tracking-[0.2em]">{hour}</div>
+                  <div className="mt-2 text-[10px] font-black uppercase tracking-[0.2em] opacity-90">
+                    {statusLabel}
+                  </div>
+                  {booking && booking.client_name !== 'ADMIN_BLOCK' && (
+                    <div className="mt-2 text-xs font-semibold opacity-80">
+                      {booking.client_name}
+                    </div>
+                  )}
                 </button>
               );
             })}
@@ -634,7 +756,7 @@ export default function AdminV2Page() {
         </ModuleCard>
       </div>
 
-      <ModuleCard title="Reservas registradas">
+      <ModuleCard title="Agenda operativa">
         <div className="overflow-x-auto">
           <table className="min-w-full text-left">
             <thead className="border-b border-white/6 text-[10px] font-black uppercase tracking-[0.28em] text-white/25">
@@ -646,18 +768,27 @@ export default function AdminV2Page() {
               </tr>
             </thead>
             <tbody>
-              {bookings.map((booking) => (
+              {operationalBookings.map((booking) => {
+                const visualStatus = getAgendaVisualStatus(booking);
+                const chipClasses =
+                  visualStatus === 'manual_block'
+                    ? 'border-red-400/30 text-red-300'
+                    : visualStatus === 'pending'
+                      ? 'border-amber-400/30 text-amber-300'
+                      : 'border-emerald-400/30 text-emerald-300';
+
+                return (
                 <tr key={booking.id} className="border-b border-white/5 text-sm text-white/75">
                   <td className="px-4 py-4 font-semibold">{booking.client_name === 'ADMIN_BLOCK' ? 'Bloqueo manual' : booking.client_name}</td>
                   <td className="px-4 py-4">{booking.service_name}</td>
                   <td className="px-4 py-4">{booking.booking_date} · {booking.booking_slot}</td>
                   <td className="px-4 py-4">
-                    <span className="rounded-full border border-white/10 px-2 py-1 text-[10px] font-black uppercase tracking-[0.22em] text-white/45">
-                      {booking.payment_status}
+                    <span className={`rounded-full border px-2 py-1 text-[10px] font-black uppercase tracking-[0.22em] ${chipClasses}`}>
+                      {getAgendaStatusLabel(visualStatus)}
                     </span>
                   </td>
                 </tr>
-              ))}
+              )})}
             </tbody>
           </table>
         </div>
