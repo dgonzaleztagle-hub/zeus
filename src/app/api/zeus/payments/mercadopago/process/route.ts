@@ -4,6 +4,11 @@ import { appendFile, mkdir } from 'fs/promises';
 import path from 'path';
 import { createMercadoPagoCardPayment } from '@/lib/mercadopago';
 import {
+  getMercadoPagoNotificationUrl,
+  normalizeMercadoPagoClientEmail,
+  parseMercadoPagoBookingStatus,
+} from '@/modules/payments/mercadopago';
+import {
   getProductExternalReference,
   getServiceExternalReference,
 } from '@/lib/payments';
@@ -12,27 +17,6 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_ZEUS_SUPABASE_URL!,
   process.env.ZEUS_SUPABASE_SERVICE_ROLE_KEY!,
 );
-
-function parsePaymentStatus(status: string | null | undefined) {
-  const normalized = String(status || '').toLowerCase();
-
-  if (normalized === 'approved') return 'approved';
-  if (normalized === 'in_process' || normalized === 'pending') return 'pending';
-  return 'failed';
-}
-
-function getMercadoPagoNotificationUrl(baseUrl: string) {
-  return baseUrl.includes('localhost')
-    ? undefined
-    : `${baseUrl}/api/zeus/payments/webhook/mercadopago`;
-}
-
-function normalizeClientEmail(baseUrl: string, email: string) {
-  const normalized = String(email || '').trim().toLowerCase();
-  return baseUrl.includes('localhost')
-    ? 'checkout.bricks@example.com'
-    : normalized;
-}
 
 async function writeDebugLog(label: string, payload: unknown) {
   try {
@@ -75,7 +59,7 @@ export async function POST(request: Request) {
     const protocol = host.includes('localhost') ? 'http' : 'https';
     const baseUrl = `${protocol}://${host}`;
     const notificationUrl = getMercadoPagoNotificationUrl(baseUrl);
-    const normalizedClientEmail = normalizeClientEmail(baseUrl, client_email);
+    const normalizedClientEmail = normalizeMercadoPagoClientEmail(baseUrl, client_email);
     const sanitizedAmount = Number(amount);
 
     if (Number.isNaN(sanitizedAmount) || sanitizedAmount < 1) {
@@ -147,11 +131,11 @@ export async function POST(request: Request) {
         }],
       });
 
-      const mappedStatus = parsePaymentStatus(payment?.status);
+      const mappedStatus = parseMercadoPagoBookingStatus(payment?.status);
       await supabase
         .from('zeus_bookings')
         .update({
-          payment_status: mappedStatus === 'approved' ? 'paid' : mappedStatus === 'failed' ? 'failed' : 'pending',
+          payment_status: mappedStatus,
           payment_id: payment?.id ? String(payment.id) : null,
           payment_method: 'mercadopago_api',
           notes: `Pago Mercado Pago procesado - payment_id: ${payment?.id || 'unknown'} - status: ${payment?.status || 'unknown'}`,
@@ -199,7 +183,7 @@ export async function POST(request: Request) {
     });
 
     return NextResponse.json({
-      success: parsePaymentStatus(payment?.status) !== 'failed',
+      success: parseMercadoPagoBookingStatus(payment?.status) !== 'failed',
       payment_id: payment?.id ? String(payment.id) : null,
       status: payment?.status || 'unknown',
       status_detail: payment?.status_detail || null,

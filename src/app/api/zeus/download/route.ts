@@ -1,24 +1,11 @@
 import { createClient } from '@supabase/supabase-js';
 import { NextResponse } from 'next/server';
+import { normalizeZeusAssetPath } from '@/modules/digital-access/tokens';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_ZEUS_SUPABASE_URL!,
   process.env.ZEUS_SUPABASE_SERVICE_ROLE_KEY!
 );
-
-function normalizeStoragePath(value: string | null | undefined) {
-  if (!value) return '';
-  const cleaned = value.trim();
-  const uploadMatch = cleaned.match(/(?:^|\/)(uploads\/[^?]+)/);
-  if (uploadMatch?.[1]) return uploadMatch[1];
-  const coverMatch = cleaned.match(/(?:^|\/)(covers\/[^?]+)/);
-  if (coverMatch?.[1]) return coverMatch[1];
-  const marker = '/storage/v1/object/public/zeus-assets/';
-  if (cleaned.includes(marker)) {
-    return cleaned.split(marker)[1] || '';
-  }
-  return cleaned.replace(/^\/+/, '');
-}
 
 export async function GET(request: Request) {
   try {
@@ -62,7 +49,7 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: 'Producto no encontrado' }, { status: 404 });
     }
 
-    const filePath = normalizeStoragePath(product.file_path);
+    const filePath = normalizeZeusAssetPath(product.file_path);
 
     if (!filePath) {
       return NextResponse.json({ error: 'Ruta de archivo inválida en producto' }, { status: 400 });

@@ -1,6 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import { NextResponse } from 'next/server';
-import { v4 as uuidv4 } from 'uuid';
+import { issueDownloadToken } from '@/modules/digital-access/tokens';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_ZEUS_SUPABASE_URL!,
@@ -29,22 +29,13 @@ export async function POST(request: Request) {
     // En un flujo real, aquí verificaríamos si el usuario pagó si !product.is_free
     // Por ahora, generamos el token directamente
 
-    const token = uuidv4();
-    const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(); // 24 horas
-    
-    const { error } = await supabase
-      .from('zeus_download_tokens')
-      .insert({
-        product_id,
-        token,
-        client_email: client_email || null,
-        expires_at: expiresAt,
-        used: false
-      });
+    const issued = await issueDownloadToken({
+      supabase,
+      productId: product_id,
+      clientEmail: client_email || null,
+    });
 
-    if (error) throw error;
-
-    return NextResponse.json({ token, expires_at: expiresAt });
+    return NextResponse.json({ token: issued.token, expires_at: issued.expiresAt });
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }

@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { createZeleriEnrollmentOrder, confirmZeleriEnrollmentOrder } from '@/lib/zeleri';
-import { v4 as uuidv4 } from 'uuid';
+import { issueDownloadToken } from '@/modules/digital-access/tokens';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_ZEUS_SUPABASE_URL!,
@@ -74,21 +74,15 @@ export async function POST(request: Request) {
     let downloadToken: string | null = null;
 
     if (type === 'product' && item_id) {
-      const token     = uuidv4();
-      const expiresAt = new Date(Date.now() + 30 * 60 * 1000); // 30 min
-
-      const { error: tokenError } = await supabase
-        .from('zeus_download_tokens')
-        .insert({
-          product_id:   item_id,
-          token,
-          client_email: customer_email,
-          expires_at:   expiresAt.toISOString(),
+      try {
+        const issued = await issueDownloadToken({
+          supabase,
+          productId: item_id,
+          clientEmail: customer_email,
+          expiresInMinutes: 30,
         });
-
-      if (!tokenError) {
-        downloadToken = token;
-      } else {
+        downloadToken = issued.token;
+      } catch (tokenError) {
         console.error('[EnrollPay] Error generando token:', tokenError);
       }
     }

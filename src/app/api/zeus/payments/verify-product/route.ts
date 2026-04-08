@@ -2,8 +2,8 @@ import { createClient } from '@supabase/supabase-js';
 import { NextResponse } from 'next/server';
 import { findMercadoPagoPaymentByExternalReference, getMercadoPagoPayment, isMercadoPagoApproved } from '@/lib/mercadopago';
 import { getProductExternalReference } from '@/lib/payments';
+import { findActiveDownloadToken, issueDownloadToken } from '@/modules/digital-access/tokens';
 import { getZeleriOrderDetail, isZeleriPaid } from '@/lib/zeleri';
-import { v4 as uuidv4 } from 'uuid';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_ZEUS_SUPABASE_URL!,
@@ -55,16 +55,11 @@ export async function GET(request: Request) {
       }
     }
 
-    const { data: existingToken } = await supabase
-      .from('zeus_download_tokens')
-      .select('token, expires_at')
-      .eq('product_id', productId)
-      .eq('client_email', clientEmail || null)
-      .eq('used', false)
-      .gt('expires_at', new Date().toISOString())
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .maybeSingle();
+    const existingToken = await findActiveDownloadToken({
+      supabase,
+      productId,
+      clientEmail,
+    });
 
     if (existingToken?.token) {
       return NextResponse.json({
@@ -75,27 +70,16 @@ export async function GET(request: Request) {
       });
     }
 
-    const token = uuidv4();
-    const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
-
-    const { error: insertError } = await supabase
-      .from('zeus_download_tokens')
-      .insert({
-        product_id: productId,
-        token,
-        client_email: clientEmail || null,
-        expires_at: expiresAt,
-        used: false,
-      });
-
-    if (insertError) {
-      throw insertError;
-    }
+    const issued = await issueDownloadToken({
+      supabase,
+      productId,
+      clientEmail,
+    });
 
     return NextResponse.json({
       verified: true,
-      token,
-      expires_at: expiresAt,
+      token: issued.token,
+      expires_at: issued.expiresAt,
     });
   } catch (error: any) {
     console.error('[VerifyProduct] Error:', error.message);

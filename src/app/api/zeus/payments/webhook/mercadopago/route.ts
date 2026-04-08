@@ -1,37 +1,16 @@
 import { createClient } from '@supabase/supabase-js';
 import { NextResponse } from 'next/server';
-import { getMercadoPagoPayment, isMercadoPagoApproved } from '@/lib/mercadopago';
+import {
+  extractBookingIdFromServiceReference,
+  extractMercadoPagoPaymentId,
+  extractMercadoPagoTopic,
+  syncMercadoPagoBooking,
+} from '@/modules/payments/mercadopago';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_ZEUS_SUPABASE_URL!,
   process.env.ZEUS_SUPABASE_SERVICE_ROLE_KEY!,
 );
-
-function extractPaymentId(payload: any, searchParams: URLSearchParams): string | null {
-  return String(
-    payload?.data?.id ||
-    payload?.id ||
-    searchParams.get('data.id') ||
-    searchParams.get('id') ||
-    ''
-  ).trim() || null;
-}
-
-function extractTopic(payload: any, searchParams: URLSearchParams): string {
-  return String(
-    payload?.type ||
-    payload?.topic ||
-    searchParams.get('type') ||
-    searchParams.get('topic') ||
-    ''
-  ).trim().toLowerCase();
-}
-
-function extractBookingIdFromExternalReference(externalReference: string): string | null {
-  const [scope, bookingId] = String(externalReference || '').split('|');
-  if (scope !== 'service' || !bookingId) return null;
-  return bookingId;
-}
 
 export async function POST(request: Request) {
   let payload: any = {};
@@ -44,20 +23,21 @@ export async function POST(request: Request) {
 
   try {
     const { searchParams } = new URL(request.url);
-    const topic = extractTopic(payload, searchParams);
+    const topic = extractMercadoPagoTopic(payload, searchParams);
 
     if (topic && topic !== 'payment') {
       return NextResponse.json({ received: true, ignored: true, topic });
     }
 
-    const paymentId = extractPaymentId(payload, searchParams);
+    const paymentId = extractMercadoPagoPaymentId(payload, searchParams);
     if (!paymentId) {
       return NextResponse.json({ received: false, error: 'payment_id no encontrado' }, { status: 400 });
     }
 
+    const { getMercadoPagoPayment } = await import('@/lib/mercadopago');
     const payment = await getMercadoPagoPayment(paymentId);
     const externalReference = String(payment?.external_reference || '');
-    const bookingId = extractBookingIdFromExternalReference(externalReference);
+    const bookingId = extractBookingIdFromServiceReference(externalReference);
 
     if (!bookingId) {
       return NextResponse.json({
@@ -68,24 +48,11 @@ export async function POST(request: Request) {
       });
     }
 
-    const nextStatus = isMercadoPagoApproved(payment?.status)
-      ? 'paid'
-      : String(payment?.status || '').toLowerCase() === 'rejected'
-        ? 'failed'
-        : 'pending';
-
-    const { error } = await supabase
-      .from('zeus_bookings')
-      .update({
-        payment_status: nextStatus,
-        payment_id: String(payment.id || paymentId),
-        notes: `Webhook Mercado Pago sincronizado - payment_id: ${payment.id || paymentId} - status: ${payment?.status || 'unknown'}`,
-      })
-      .eq('id', bookingId);
-
-    if (error) {
-      return NextResponse.json({ received: false, error: error.message }, { status: 500 });
-    }
+    const { nextStatus } = await syncMercadoPagoBooking({
+      supabase,
+      bookingId,
+      paymentId,
+    });
 
     return NextResponse.json({
       received: true,
