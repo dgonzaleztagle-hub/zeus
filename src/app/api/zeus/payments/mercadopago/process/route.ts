@@ -1,5 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 import { NextResponse } from 'next/server';
+import { appendFile, mkdir } from 'fs/promises';
+import path from 'path';
 import { createMercadoPagoCardPayment } from '@/lib/mercadopago';
 import {
   getProductExternalReference,
@@ -19,9 +21,35 @@ function parsePaymentStatus(status: string | null | undefined) {
   return 'failed';
 }
 
+function getMercadoPagoNotificationUrl(baseUrl: string) {
+  return baseUrl.includes('localhost')
+    ? undefined
+    : `${baseUrl}/api/zeus/payments/webhook/mercadopago`;
+}
+
+function normalizeClientEmail(baseUrl: string, email: string) {
+  const normalized = String(email || '').trim().toLowerCase();
+  return baseUrl.includes('localhost')
+    ? 'checkout.bricks@example.com'
+    : normalized;
+}
+
+async function writeDebugLog(label: string, payload: unknown) {
+  try {
+    const dir = path.join(process.cwd(), '.codex-debug');
+    await mkdir(dir, { recursive: true });
+    const file = path.join(dir, 'mercadopago-process.log');
+    const entry = `[${new Date().toISOString()}] ${label}\n${JSON.stringify(payload, null, 2)}\n\n`;
+    await appendFile(file, entry, 'utf8');
+  } catch (error) {
+    console.error('[MercadoPagoProcess] No se pudo escribir log debug:', error);
+  }
+}
+
 export async function POST(request: Request) {
   try {
     const body = await request.json();
+    const brick = body?.brick || {};
     const {
       type,
       booking_id,
@@ -31,26 +59,45 @@ export async function POST(request: Request) {
       client_name,
       client_email,
       client_whatsapp,
-      token,
-      payment_method_id,
-      issuer_id,
-      installments,
-      identification_type,
-      identification_number,
+      token = brick.token,
+      payment_method_id = brick.payment_method_id || brick.paymentMethodId,
+      issuer_id = brick.issuer_id || brick.issuerId,
+      installments = brick.installments,
+      identification_type = brick?.payer?.identification?.type || brick.identificationType,
+      identification_number = brick?.payer?.identification?.number || brick.identificationNumber,
     } = body || {};
 
-    if (!type || !amount || !client_name || !client_email || !token || !payment_method_id || !installments || !identification_type || !identification_number) {
+    if (!type || !amount || !client_name || !client_email || !token || !payment_method_id || !installments) {
       return NextResponse.json({ error: 'Faltan datos para procesar el pago' }, { status: 400 });
     }
 
     const host = request.headers.get('host') || 'asesoriaszeus.cl';
     const protocol = host.includes('localhost') ? 'http' : 'https';
     const baseUrl = `${protocol}://${host}`;
+    const notificationUrl = getMercadoPagoNotificationUrl(baseUrl);
+    const normalizedClientEmail = normalizeClientEmail(baseUrl, client_email);
     const sanitizedAmount = Number(amount);
 
     if (Number.isNaN(sanitizedAmount) || sanitizedAmount < 1) {
       return NextResponse.json({ error: 'Monto inválido' }, { status: 400 });
     }
+
+    const debugPayload = {
+      type,
+      booking_id,
+      product_id,
+      amount: sanitizedAmount,
+      client_email: normalizedClientEmail,
+      payment_method_id,
+      issuer_id,
+      installments,
+      identification_type,
+      identification_number,
+      brick,
+    };
+
+    console.log('[MercadoPagoProcess] Incoming payload:', JSON.stringify(debugPayload, null, 2));
+    await writeDebugLog('incoming_payload', debugPayload);
 
     let payment;
 
@@ -81,12 +128,12 @@ export async function POST(request: Request) {
         installments: Number(installments),
         issuerId: issuer_id ? Number(issuer_id) : null,
         clientName: client_name,
-        clientEmail: String(client_email).trim().toLowerCase(),
+        clientEmail: normalizedClientEmail,
         clientWhatsapp: client_whatsapp || null,
-        identificationType: identification_type,
-        identificationNumber: identification_number,
+        identificationType: identification_type || 'RUT',
+        identificationNumber: identification_number || '11111111',
         externalReference: getServiceExternalReference(String(booking_id)),
-        notificationUrl: `${baseUrl}/api/zeus/payments/webhook/mercadopago`,
+        notificationUrl,
         metadata: {
           type: 'service',
           booking_id: String(booking_id),
@@ -132,12 +179,12 @@ export async function POST(request: Request) {
       installments: Number(installments),
       issuerId: issuer_id ? Number(issuer_id) : null,
       clientName: client_name,
-      clientEmail: String(client_email).trim().toLowerCase(),
+      clientEmail: normalizedClientEmail,
       clientWhatsapp: client_whatsapp || null,
-      identificationType: identification_type,
-      identificationNumber: identification_number,
-      externalReference: getProductExternalReference(String(product_id), String(client_email)),
-      notificationUrl: `${baseUrl}/api/zeus/payments/webhook/mercadopago`,
+      identificationType: identification_type || 'RUT',
+      identificationNumber: identification_number || '11111111',
+      externalReference: getProductExternalReference(String(product_id), normalizedClientEmail),
+      notificationUrl,
       metadata: {
         type: 'product',
         product_id: String(product_id),
@@ -156,10 +203,24 @@ export async function POST(request: Request) {
       payment_id: payment?.id ? String(payment.id) : null,
       status: payment?.status || 'unknown',
       status_detail: payment?.status_detail || null,
-      redirect_url: `${baseUrl}/checkout/success?type=product&product_id=${encodeURIComponent(String(product_id))}&client_email=${encodeURIComponent(String(client_email).trim().toLowerCase())}&payment_id=${encodeURIComponent(String(payment?.id || ''))}&provider=mercadopago`,
+      redirect_url: `${baseUrl}/checkout/success?type=product&product_id=${encodeURIComponent(String(product_id))}&client_email=${encodeURIComponent(normalizedClientEmail)}&payment_id=${encodeURIComponent(String(payment?.id || ''))}&provider=mercadopago`,
     });
   } catch (error: any) {
-    console.error('[MercadoPagoProcess] Error:', error?.message || error);
-    return NextResponse.json({ error: error?.message || 'Error interno' }, { status: 500 });
+    console.error('[MercadoPagoProcess] Error message:', error?.message || error);
+    console.error('[MercadoPagoProcess] Error cause:', JSON.stringify(error?.cause || null, null, 2));
+    console.error('[MercadoPagoProcess] Full error:', error);
+    await writeDebugLog('error', {
+      message: error?.message || String(error),
+      cause: error?.cause || null,
+      stack: error?.stack || null,
+    });
+
+    const debugMessage =
+      error?.cause?.[0]?.description ||
+      error?.cause?.[0]?.message ||
+      error?.message ||
+      'Error interno';
+
+    return NextResponse.json({ error: debugMessage }, { status: 500 });
   }
 }

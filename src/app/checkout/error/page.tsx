@@ -20,7 +20,7 @@ export default function CheckoutErrorPage() {
           <h1 className="text-3xl font-black">Pago no completado</h1>
           <p className="text-white/50 text-sm leading-relaxed">
             La sesión de pago no pudo completarse o fue interrumpida antes de la confirmación final.
-            Si ves el cobro en tu banco o en Zeleri, contáctanos para validar manualmente tu orden.
+            Si ves el cobro en tu banco o en Mercado Pago, contáctanos para validar manualmente tu orden.
           </p>
         </div>
 

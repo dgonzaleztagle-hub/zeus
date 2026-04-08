@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { AnimatedGradient } from '@/components/premium/AnimatedGradient';
 import { format, addMonths, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, isToday, addDays } from 'date-fns';
 import { es } from 'date-fns/locale';
-import ZeleriPayModal from '@/components/ZeleriPayModal';
+import MercadoPagoModal from '@/components/MercadoPagoModal';
 
 export default function AgendaPage() {
   const [services, setServices] = useState<any[]>([]);
@@ -68,7 +68,7 @@ export default function AgendaPage() {
       return;
     }
     if ((selectedService?.price || 0) < 1000) {
-      alert('Zeleri solo permite pagos desde $1.000 CLP');
+      alert('Mercado Pago solo permite pagos desde $1.000 CLP');
       return;
     }
     setPayModalOpen(true);
@@ -261,7 +261,7 @@ export default function AgendaPage() {
       </div>
 
       {selectedService && selectedSlot && (
-        <ZeleriPayModal
+        <MercadoPagoModal
           isOpen={payModalOpen}
           onClose={() => setPayModalOpen(false)}
           type="service"

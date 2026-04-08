@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { AnimatedGradient } from '@/components/premium/AnimatedGradient';
 import * as ConfettiModule from 'canvas-confetti';
-import ZeleriPayModal from '@/components/ZeleriPayModal';
+import MercadoPagoModal from '@/components/MercadoPagoModal';
 
 const confetti = (ConfettiModule as any).default || ConfettiModule;
 
@@ -233,9 +233,9 @@ export default function TiendaPage() {
         </div>
       </div>
 
-      {/* Modal de pago inline con Zeleri */}
+      {/* Modal de pago embebido con Mercado Pago */}
       {payModal.product && (
-        <ZeleriPayModal
+        <MercadoPagoModal
           isOpen={payModal.open}
           onClose={() => setPayModal({ open: false, product: null })}
           type="product"
