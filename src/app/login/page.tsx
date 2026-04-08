@@ -22,7 +22,7 @@ function LoginContent() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const nextPath = searchParams.get('next') || '/v2';
+  const nextPath = searchParams.get('next') || '/admin';
 
   useEffect(() => {
     let mounted = true;
