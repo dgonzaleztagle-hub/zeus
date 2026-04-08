@@ -145,7 +145,7 @@ export default function AdminV2Page() {
   const zeusSupabaseAnonKey = process.env.NEXT_PUBLIC_ZEUS_SUPABASE_ANON_KEY;
 
   if (!zeusSupabaseUrl || !zeusSupabaseAnonKey) {
-    throw new Error('Faltan variables ZEUS públicas para admin v2.');
+    throw new Error('Faltan variables ZEUS públicas para admin.');
   }
 
   const supabase = useMemo(
@@ -553,8 +553,8 @@ export default function AdminV2Page() {
     <div className="space-y-8">
       <SectionHeader
         eyebrow="Control Central"
-        title="Un panel que sí separa operación, oferta y dinero."
-        description="La idea de v2 es que cada módulo tenga una responsabilidad clara. No más mezclar agenda, catálogo, servicios y pagos como si fueran la misma cosa."
+        title="Panel administrativo"
+        description="Vista central para agenda, servicios, productos y pagos."
         action={
           <button
             onClick={refreshData}
@@ -566,7 +566,7 @@ export default function AdminV2Page() {
       />
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <StatCard label="Reservas pagadas" value={String(paidBookings.length)} hint="Reservas reales confirmadas, sin mezclar bloqueos manuales." />
+        <StatCard label="Reservas pagadas" value={String(paidBookings.length)} hint="Reservas confirmadas en el sistema." />
         <StatCard label="Ingresos del mes" value={`$${monthlyRevenue.toLocaleString('es-CL')}`} hint="Lectura rápida de tracción mensual para no ir al detalle cada vez." />
         <StatCard label="Productos activos" value={String(products.length)} hint="Biblioteca digital disponible para compra o descarga." />
         <StatCard label="Servicios activos" value={String(services.filter((service) => service.active !== false).length)} hint="Oferta visible distribuida entre asesorías, técnico y empresas." />
@@ -988,8 +988,8 @@ export default function AdminV2Page() {
     <div className="space-y-8">
       <SectionHeader
         eyebrow="Pagos"
-        title="Lectura financiera sin ruido."
-        description="Una sección dedicada a dinero, historial y detalle transaccional. Sin mezclar reservas, catálogo ni configuración de servicios."
+        title="Resumen financiero."
+        description="Historial de transacciones y lectura operativa de pagos."
       />
 
       <div className="grid gap-4 md:grid-cols-3">
@@ -1052,7 +1052,7 @@ export default function AdminV2Page() {
             <motion.div initial={{ opacity: 0, y: 16, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 10, scale: 0.98 }} className="w-full max-w-md rounded-[28px] border border-white/10 bg-[#10131C] p-6 shadow-2xl">
               <div className="text-[10px] font-black uppercase tracking-[0.28em] text-red-300/80">Confirmar cambio</div>
               <h3 className="mt-3 text-2xl font-black tracking-[-0.03em]">{serviceToDeactivate.title}</h3>
-              <p className="mt-3 text-sm leading-relaxed text-white/50">Este servicio dejará de mostrarse en la oferta pública, pero seguirá existiendo en la base. La intención es esconderlo, no eliminar su historial.</p>
+              <p className="mt-3 text-sm leading-relaxed text-white/50">Este servicio dejará de mostrarse en la oferta pública, pero seguirá existiendo en la base para mantener el historial.</p>
               <div className="mt-6 flex gap-3">
                 <button onClick={() => setServiceToDeactivate(null)} className="flex-1 rounded-2xl border border-white/10 px-4 py-3 text-xs font-black uppercase tracking-[0.24em] text-white/60 hover:text-white">Cancelar</button>
                 <button onClick={() => handleDeactivateService(serviceToDeactivate.id)} disabled={deletingServiceId === serviceToDeactivate.id} className="flex-1 rounded-2xl border border-red-400/20 bg-red-400/10 px-4 py-3 text-xs font-black uppercase tracking-[0.24em] text-red-200 disabled:opacity-40">
@@ -1100,9 +1100,9 @@ export default function AdminV2Page() {
         <aside className="border-b border-white/6 bg-[#090B11]/90 px-6 py-8 xl:border-b-0 xl:border-r">
           <div className="sticky top-0 space-y-8">
             <div className="space-y-3">
-              <div className="text-[10px] font-black uppercase tracking-[0.35em] text-cyan-300/75">Zeus Admin v2</div>
+              <div className="text-[10px] font-black uppercase tracking-[0.35em] text-cyan-300/75">Zeus Admin</div>
               <h1 className="text-3xl font-black tracking-[-0.05em]">Operación ordenada.</h1>
-              <p className="text-sm leading-relaxed text-white/42">Prototipo limpio para mostrarle al cliente una versión más lógica del panel sin romper el admin actual.</p>
+              <p className="text-sm leading-relaxed text-white/42">Panel administrativo para agenda, servicios, productos y pagos.</p>
             </div>
 
             <nav className="space-y-2">
@@ -1132,7 +1132,7 @@ export default function AdminV2Page() {
           {loading ? (
             <div className="flex min-h-[50vh] items-center justify-center">
               <div className="rounded-3xl border border-white/8 bg-white/[0.03] px-6 py-5 text-sm font-bold uppercase tracking-[0.24em] text-white/40">
-                Cargando panel v2...
+                Cargando panel...
               </div>
             </div>
           ) : view === 'overview' ? (

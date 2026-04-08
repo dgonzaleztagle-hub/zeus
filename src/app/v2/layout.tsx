@@ -1,5 +1,5 @@
 export const metadata = {
-  title: 'Zeus Admin v2',
+  title: 'Zeus Admin',
 };
 
 export default function AdminV2Layout({
