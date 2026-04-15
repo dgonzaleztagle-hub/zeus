@@ -5,6 +5,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { AnimatedGradient } from '@/components/premium/AnimatedGradient';
 import * as ConfettiModule from 'canvas-confetti';
 import MercadoPagoModal from '@/components/MercadoPagoModal';
+import PaymentProviderSwitch from '@/components/PaymentProviderSwitch';
+import type { PaymentProvider } from '@/lib/payments';
 
 const confetti = (ConfettiModule as any).default || ConfettiModule;
 
@@ -13,9 +15,19 @@ export default function TiendaPage() {
   const [loading, setLoading] = useState(true);
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
   const [simulatingPaymentId, setSimulatingPaymentId] = useState<string | null>(null);
+  const [paymentSwitchEnabled, setPaymentSwitchEnabled] = useState(false);
+  const [selectedPaymentProvider, setSelectedPaymentProvider] = useState<PaymentProvider>('mercadopago');
   const [payModal, setPayModal] = useState<{ open: boolean; product: any | null }>({
     open: false, product: null,
   });
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const params = new URLSearchParams(window.location.search);
+    setPaymentSwitchEnabled(params.get('payment_switch') === '1');
+    setSelectedPaymentProvider(params.get('payment_provider') === 'zeleri' ? 'zeleri' : 'mercadopago');
+  }, []);
 
   useEffect(() => {
     fetchProducts();
@@ -126,6 +138,16 @@ export default function TiendaPage() {
           </p>
         </div>
 
+        {paymentSwitchEnabled ? (
+          <div className="mb-8 max-w-xl">
+            <PaymentProviderSwitch
+              value={selectedPaymentProvider}
+              onChange={setSelectedPaymentProvider}
+              compact
+            />
+          </div>
+        ) : null}
+
         {loading ? (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {[1, 2, 3].map(i => (
@@ -234,6 +256,7 @@ export default function TiendaPage() {
           itemId={payModal.product.id}
           itemName={payModal.product.name}
           amount={payModal.product.price}
+          forcedProvider={selectedPaymentProvider}
         />
       )}
     </div>

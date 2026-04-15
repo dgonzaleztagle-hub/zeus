@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getActivePaymentProvider, getPaymentMode } from '@/lib/payments';
+import { getPaymentMode, resolveRequestedPaymentProvider } from '@/lib/payments';
 import { createZeleriOrder } from '@/lib/zeleri';
 
 // =============================================================================
@@ -54,7 +54,7 @@ import { createZeleriOrder } from '@/lib/zeleri';
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { type, item_id, item_name, amount, client_name, client_email, metadata } = body;
+    const { type, item_id, item_name, amount, client_name, client_email, metadata, payment_provider } = body;
 
     if (!item_id || !amount || !client_email || !client_name || !type) {
       return NextResponse.json({ error: 'Faltan campos obligatorios' }, { status: 400 });
@@ -70,7 +70,7 @@ export async function POST(request: Request) {
     const baseUrl  = `${protocol}://${host}`;
 
     const { date, slot } = metadata || {};
-    const provider = getActivePaymentProvider();
+    const provider = resolveRequestedPaymentProvider(payment_provider);
 
     if (provider === 'mercadopago') {
       return NextResponse.json({

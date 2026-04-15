@@ -3,7 +3,7 @@ import { NextResponse } from 'next/server';
 import { getServiceExternalReference } from '@/lib/payments';
 import { createZeleriOrder } from '@/lib/zeleri';
 import { reconcileAndClassifyBookings } from '@/lib/booking-locks';
-import { getActivePaymentProvider, getPaymentMode } from '@/lib/payments';
+import { getPaymentMode, resolveRequestedPaymentProvider } from '@/lib/payments';
 
 // =============================================================================
 // MERCADOPAGO — comentado, conservado para eventual reactivación
@@ -47,8 +47,6 @@ const supabase = createClient(
   process.env.ZEUS_SUPABASE_SERVICE_ROLE_KEY!
 );
 
-const PAYMENT_PROVIDER = getActivePaymentProvider();
-
 export async function POST(request: Request) {
   try {
     const body = await request.json();
@@ -61,8 +59,11 @@ export async function POST(request: Request) {
       client_whatsapp,
       date,
       slot,
-      simulate_payment
+      simulate_payment,
+      payment_provider,
     } = body;
+
+    const paymentProvider = resolveRequestedPaymentProvider(payment_provider);
 
     // 1. Validaciones básicas
     if (!date || !slot || !client_email || !client_name) {
@@ -124,12 +125,12 @@ export async function POST(request: Request) {
         payment_status:   isSimulated ? 'paid' : 'pending',
         payment_method:   isSimulated
           ? 'simulated'
-          : PAYMENT_PROVIDER === 'mercadopago'
+          : paymentProvider === 'mercadopago'
             ? 'mercadopago_api'
             : 'zeleri',
         notes:            isSimulated
           ? 'Pago simulado aprobado'
-          : PAYMENT_PROVIDER === 'mercadopago'
+          : paymentProvider === 'mercadopago'
             ? `Checkout API Mercado Pago inicializado - reference: ${getServiceExternalReference(String(service_id || ''))}`
             : null,
       })
@@ -147,7 +148,7 @@ export async function POST(request: Request) {
       const protocol = host.includes('localhost') ? 'http' : 'https';
       const baseUrl  = `${protocol}://${host}`;
 
-      if (PAYMENT_PROVIDER === 'mercadopago') {
+      if (paymentProvider === 'mercadopago') {
         await supabase
           .from('zeus_bookings')
           .update({
@@ -178,8 +179,8 @@ export async function POST(request: Request) {
       success:     true,
       booking_id:  booking.id,
       order_id:    zeleriOrderId,
-      payment_provider: PAYMENT_PROVIDER,
-      payment_mode: getPaymentMode(PAYMENT_PROVIDER),
+      payment_provider: paymentProvider,
+      payment_mode: getPaymentMode(paymentProvider),
       preference_id: mercadopagoPreferenceId,
       payment_url: paymentUrl,
       message:     isSimulated

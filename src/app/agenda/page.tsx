@@ -6,15 +6,25 @@ import { AnimatedGradient } from '@/components/premium/AnimatedGradient';
 import { format, addMonths, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, isToday, addDays } from 'date-fns';
 import { es } from 'date-fns/locale';
 import MercadoPagoModal from '@/components/MercadoPagoModal';
+import PaymentProviderSwitch from '@/components/PaymentProviderSwitch';
+import type { PaymentProvider } from '@/lib/payments';
 
 export default function AgendaPage() {
   const [services, setServices] = useState<any[]>([]);
   const [step, setStep] = useState(1);
   const [selectedService, setSelectedService] = useState<any>(null);
   const [currentMonth, setCurrentMonth] = useState(new Date());
+  const [paymentSwitchEnabled, setPaymentSwitchEnabled] = useState(false);
+  const [selectedPaymentProvider, setSelectedPaymentProvider] = useState<PaymentProvider>('mercadopago');
   
   // Cargar servicios dinámicos
   useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      setPaymentSwitchEnabled(params.get('payment_switch') === '1');
+      setSelectedPaymentProvider(params.get('payment_provider') === 'zeleri' ? 'zeleri' : 'mercadopago');
+    }
+
     const loadServices = async () => {
       try {
         const res = await fetch('/api/zeus/services');
@@ -243,6 +253,16 @@ export default function AgendaPage() {
                    </div>
                 </div>
 
+                {paymentSwitchEnabled ? (
+                  <div className="mt-6">
+                    <PaymentProviderSwitch
+                      value={selectedPaymentProvider}
+                      onChange={setSelectedPaymentProvider}
+                      compact
+                    />
+                  </div>
+                ) : null}
+
                 <div className="mt-8 pt-8 border-t border-white/5 flex justify-between items-center">
                    <button onClick={prevStep} className="text-sm font-bold opacity-50 hover:opacity-100 transition-opacity">← Atrás</button>
                    <button onClick={handleCheckout} disabled={!formData.name || !formData.email || !formData.whatsapp}
@@ -270,6 +290,7 @@ export default function AgendaPage() {
           amount={selectedService.price}
           date={format(selectedDate, 'yyyy-MM-dd')}
           slot={selectedSlot}
+          forcedProvider={selectedPaymentProvider}
           prefillName={formData.name}
           prefillEmail={formData.email}
           prefillPhone={formData.whatsapp}

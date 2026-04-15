@@ -10,6 +10,7 @@ export interface MercadoPagoModalProps {
   itemId: string;
   itemName: string;
   amount: number;
+  forcedProvider?: 'mercadopago' | 'zeleri';
   date?: string;
   slot?: string;
   prefillName?: string;
@@ -96,6 +97,7 @@ export default function MercadoPagoModal({
   itemId,
   itemName,
   amount,
+  forcedProvider = 'mercadopago',
   date,
   slot,
   prefillName,
@@ -126,6 +128,9 @@ export default function MercadoPagoModal({
 
   const hasPrefill = useMemo(() => Boolean(prefillName && prefillEmail), [prefillEmail, prefillName]);
   const brickContainerId = 'zeus-mp-card-payment-brick';
+  const selectedProviderLabel = (checkoutContext?.paymentProvider || forcedProvider) === 'zeleri'
+    ? 'Zeleri'
+    : 'Mercado Pago';
 
   function resetEmbeddedState() {
     brickControllerRef.current?.unmount?.();
@@ -202,6 +207,7 @@ export default function MercadoPagoModal({
             service_id: itemId,
             service_name: itemName,
             amount,
+            payment_provider: forcedProvider,
             client_name: name,
             client_email: email,
             client_whatsapp: phone || null,
@@ -213,6 +219,7 @@ export default function MercadoPagoModal({
             item_id: itemId,
             item_name: itemName,
             amount,
+            payment_provider: forcedProvider,
             client_name: name,
             client_email: email,
             metadata: {
@@ -667,8 +674,8 @@ export default function MercadoPagoModal({
                   </p>
                   <p className="text-xs text-white/20 text-center">
                     {type === 'service'
-                      ? 'Estamos dejando tu reserva lista para cobrarla con Mercado Pago.'
-                      : 'Estamos preparando tu compra para cobrarla con Mercado Pago.'}
+                      ? `Estamos dejando tu reserva lista para cobrarla con ${selectedProviderLabel}.`
+                      : `Estamos preparando tu compra para cobrarla con ${selectedProviderLabel}.`}
                   </p>
                 </motion.div>
               )}
