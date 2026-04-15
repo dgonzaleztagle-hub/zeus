@@ -6,12 +6,16 @@ type PaymentProviderSwitchProps = {
   value: PaymentProvider;
   onChange: (provider: PaymentProvider) => void;
   compact?: boolean;
+  title?: string;
+  description?: string;
 };
 
 export default function PaymentProviderSwitch({
   value,
   onChange,
   compact = false,
+  title = 'Elige tu pasarela de pago',
+  description = 'Selecciona la opción que prefieras para completar tu pago.',
 }: PaymentProviderSwitchProps) {
   const options: Array<{ value: PaymentProvider; label: string }> = [
     { value: 'mercadopago', label: 'Mercado Pago' },
@@ -27,10 +31,10 @@ export default function PaymentProviderSwitch({
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <p className="text-[10px] font-black uppercase tracking-widest text-white/30 mb-1">
-              Pasarela de prueba
+              Medio de pago
             </p>
             <p className="text-xs text-white/55">
-              Esta selección solo aplica a esta muestra.
+              {description}
             </p>
           </div>
 
@@ -66,10 +70,10 @@ export default function PaymentProviderSwitch({
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
           <p className="text-[10px] font-black uppercase tracking-widest text-white/30 mb-1">
-            Modo Prueba
+            {title}
           </p>
           <p className="text-sm text-white/55">
-            Elige temporalmente la pasarela para esta muestra sin cambiar la configuración principal.
+            {description}
           </p>
         </div>
 

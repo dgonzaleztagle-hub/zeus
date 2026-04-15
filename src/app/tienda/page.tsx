@@ -15,19 +15,10 @@ export default function TiendaPage() {
   const [loading, setLoading] = useState(true);
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
   const [simulatingPaymentId, setSimulatingPaymentId] = useState<string | null>(null);
-  const [paymentSwitchEnabled, setPaymentSwitchEnabled] = useState(false);
   const [selectedPaymentProvider, setSelectedPaymentProvider] = useState<PaymentProvider>('mercadopago');
   const [payModal, setPayModal] = useState<{ open: boolean; product: any | null }>({
     open: false, product: null,
   });
-
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-
-    const params = new URLSearchParams(window.location.search);
-    setPaymentSwitchEnabled(params.get('payment_switch') === '1');
-    setSelectedPaymentProvider(params.get('payment_provider') === 'zeleri' ? 'zeleri' : 'mercadopago');
-  }, []);
 
   useEffect(() => {
     fetchProducts();
@@ -138,15 +129,14 @@ export default function TiendaPage() {
           </p>
         </div>
 
-        {paymentSwitchEnabled ? (
-          <div className="mb-8 max-w-xl">
-            <PaymentProviderSwitch
-              value={selectedPaymentProvider}
-              onChange={setSelectedPaymentProvider}
-              compact
-            />
-          </div>
-        ) : null}
+        <div className="mb-8 max-w-xl">
+          <PaymentProviderSwitch
+            value={selectedPaymentProvider}
+            onChange={setSelectedPaymentProvider}
+            compact
+            description="Elige la pasarela que prefieras para completar tu compra."
+          />
+        </div>
 
         {loading ? (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
